@@ -34,7 +34,10 @@ require_command curl
 require_command npm
 
 echo "Starting backend services with Docker..."
-(cd "$PROJECT_DIR" && docker compose up -d postgres redis pgadmin backend)
+(cd "$PROJECT_DIR" && docker compose up -d postgres redis pgadmin)
+
+echo "Rebuilding and starting the backend..."
+(cd "$PROJECT_DIR" && docker compose up -d --build backend)
 
 if [ ! -d "$FRONTEND_DIR/node_modules" ]; then
   echo "Installing frontend dependencies..."

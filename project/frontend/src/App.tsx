@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Landing from "./Landing";
 import Login from "./Login";
+import Dashboard from "./Dashboard";
 import "./App.css";
 
 export default function App() {
@@ -12,6 +13,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/dashboard" element={<Dashboard />} />
           </Routes>
         </main>
 

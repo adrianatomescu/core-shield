@@ -180,6 +180,18 @@ select.auth-input option {
   transform: translateY(0);
 }
 
+.auth-btn:disabled {
+  cursor: wait;
+  opacity: 0.75;
+}
+
+.auth-error {
+  margin-top: 1rem;
+  color: #fca5a5;
+  text-align: center;
+  font-size: 0.85rem;
+}
+
 /* --- Footer --- */
 .back-link-container {
   margin-top: 2rem;

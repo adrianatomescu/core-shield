@@ -1,18 +1,53 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import "./Login.css";
 
 type Role = "ADMIN" | "SECURITY_ENGINEER" | "ANALYST" | "AUDITOR";
 
 export default function Login() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<Role>("ADMIN");
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login attempt:", { email, role });
+    setIsLoading(true);
+    setErrorMessage("");
+
+    try {
+      const response = await fetch("http://localhost:8000/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          role,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Authentication failed.");
+      }
+
+      window.sessionStorage.setItem("coreshieldUser", JSON.stringify(data.user));
+      navigate("/dashboard");
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "The backend could not be reached."
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -27,7 +62,7 @@ export default function Login() {
         transition={{ duration: 0.6, ease: "easeOut" }}
         className="glass-card"
       >
-        {/* Iconița de Lacăt */}
+        {/* Iconita de Lacat */}
         <div className="icon-container">
           <div className="lock-icon">
             <svg
@@ -56,7 +91,7 @@ export default function Login() {
             <input
               type="email"
               className="auth-input"
-              placeholder="operator@core.local"
+              placeholder="operator@local.dev"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
@@ -85,14 +120,18 @@ export default function Login() {
               onChange={(e) => setRole(e.target.value as Role)}
             >
               <option value="ADMIN">Administrator</option>
+              <option value="SECURITY_ENGINEER">Security Engineer</option>
               <option value="ANALYST">Analyst</option>
+              <option value="AUDITOR">Auditor</option>
             </select>
           </div>
 
-          <button type="submit" className="auth-btn">
-            Authenticate
+          <button type="submit" className="auth-btn" disabled={isLoading}>
+            {isLoading ? "Authenticating..." : "Authenticate"}
           </button>
         </form>
+
+        {errorMessage ? <p className="auth-error">{errorMessage}</p> : null}
 
         <div className="back-link-container">
           <Link to="/" className="back-link">
