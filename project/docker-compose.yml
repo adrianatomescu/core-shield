@@ -1,55 +1,49 @@
-name: sentinelflow
-
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: sentinelflow-postgres
-    restart: unless-stopped
+    container_name: coreshield-postgres
+    env_file:
+      - .env
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5433:5432"
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
 
   redis:
     image: redis:7-alpine
-    container_name: sentinelflow-redis
-    restart: unless-stopped
-    command: ["sh", "-c", "redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}"]
+    container_name: coreshield-redis
+    command: redis-server --requirepass ${REDIS_PASSWORD}
     ports:
       - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
 
   pgadmin:
     image: dpage/pgadmin4:8
-    container_name: sentinelflow-pgadmin
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
+    container_name: coreshield-pgadmin
+    env_file:
+      - .env
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
     ports:
       - "5050:80"
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+
+  backend:
+    build:
+      context: ./backend
+    container_name: coreshield-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
 
 volumes:
   postgres_data:
-  redis_data:
-  pgadmin_data:
