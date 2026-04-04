@@ -62,6 +62,30 @@ export default function Login() {
         transition={{ duration: 0.6, ease: "easeOut" }}
         className="glass-card"
       >
+        <Link
+          to="/admin-create-user"
+          className="create-account-link"
+          aria-label="Create account"
+          title="Create account"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M15 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+            <circle cx="8.5" cy="7" r="4"></circle>
+            <line x1="20" y1="8" x2="20" y2="14"></line>
+            <line x1="23" y1="11" x2="17" y2="11"></line>
+          </svg>
+        </Link>
+
         {/* Iconita de Lacat */}
         <div className="icon-container">
           <div className="lock-icon">
@@ -89,13 +113,12 @@ export default function Login() {
           <div className="input-group">
             <label className="input-label">Email Address</label>
             <input
-              type="email"
+              type="text"
               className="auth-input"
               placeholder="operator@local.dev"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
-              required
             />
           </div>
 
@@ -108,7 +131,6 @@ export default function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
-              required
             />
           </div>
 
@@ -132,6 +154,11 @@ export default function Login() {
         </form>
 
         {errorMessage ? <p className="auth-error">{errorMessage}</p> : null}
+
+        <p className="helper-copy">
+          Need to provision a new operator? Use the add-account icon above and
+          verify with an administrator account first.
+        </p>
 
         <div className="back-link-container">
           <Link to="/" className="back-link">
