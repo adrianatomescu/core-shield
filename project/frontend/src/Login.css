@@ -157,6 +157,51 @@
   box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
 }
 
+.password-field {
+  position: relative;
+}
+
+.auth-input-password {
+  padding-right: 3.5rem;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.65rem;
+  transform: translateY(-50%);
+  width: 2.35rem;
+  height: 2.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.password-toggle:hover {
+  color: #f8fafc;
+  border-color: rgba(99, 102, 241, 0.35);
+  background: rgba(99, 102, 241, 0.12);
+}
+
+.password-toggle:focus-visible {
+  outline: none;
+  color: #f8fafc;
+  border-color: rgba(99, 102, 241, 0.45);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.16);
+}
+
+.password-toggle[aria-pressed="true"] {
+  color: #c7d2fe;
+  border-color: rgba(99, 102, 241, 0.35);
+  background: rgba(99, 102, 241, 0.14);
+}
+
 /* --- Select styling (Role dropdown) --- */
 select.auth-input {
   appearance: none;

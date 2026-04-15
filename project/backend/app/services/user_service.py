@@ -77,3 +77,35 @@ def create_user(email: str, password: str, role: str, enabled: bool = True):
         role=row[2],
         enabled=row[3],
     )
+
+
+def get_all_users():
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            SELECT id, email, role, enabled
+            FROM users
+            ORDER BY id ASC
+            """
+        )
+        rows = cursor.fetchall()
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
+
+    return [
+        User(
+            id=row[0],
+            email=row[1],
+            role=row[2],
+            enabled=row[3],
+        )
+        for row in rows
+    ]

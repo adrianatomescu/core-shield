@@ -4,7 +4,7 @@ from typing import Literal
 from pydantic import BaseModel, Field, field_validator
 
 
-Role = Literal["ADMIN", "SECURITY_ENGINEER", "ANALYST", "AUDITOR"]
+Role = Literal["ADMIN", "MANAGER", "SECURITY_ENGINEER", "ANALYST", "AUDITOR"]
 
 
 class LoginRequest(BaseModel):
@@ -78,3 +78,7 @@ class LoginResponse(BaseModel):
 class CreateUserResponse(BaseModel):
     message: str
     user: UserResponse
+
+
+class UsersListResponse(BaseModel):
+    users: list[UserResponse]

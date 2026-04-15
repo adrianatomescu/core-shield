@@ -3,10 +3,11 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import "./Login.css";
 
-type Role = "ADMIN" | "SECURITY_ENGINEER" | "ANALYST" | "AUDITOR";
+type Role = "ADMIN" | "MANAGER" | "SECURITY_ENGINEER" | "ANALYST" | "AUDITOR";
 
 const roleOptions: Array<{ value: Role; label: string }> = [
   { value: "ADMIN", label: "Administrator" },
+  { value: "MANAGER", label: "Manager" },
   { value: "SECURITY_ENGINEER", label: "Security Engineer" },
   { value: "ANALYST", label: "Analyst" },
   { value: "AUDITOR", label: "Auditor" },
@@ -15,9 +16,11 @@ const roleOptions: Array<{ value: Role; label: string }> = [
 export default function AdminCreateUser() {
   const [adminEmail, setAdminEmail] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
-  const [newUserRole, setNewUserRole] = useState<Role>("ANALYST");
+  const [showNewUserPassword, setShowNewUserPassword] = useState(false);
+  const [newUserRole, setNewUserRole] = useState<Role | "">("");
   const [isVerifying, setIsVerifying] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isAdminVerified, setIsAdminVerified] = useState(false);
@@ -69,6 +72,12 @@ export default function AdminCreateUser() {
     setErrorMessage("");
     setSuccessMessage("");
 
+    if (!newUserRole) {
+      setErrorMessage("Please select a role for the new account.");
+      setIsCreating(false);
+      return;
+    }
+
     try {
       const response = await fetch("http://localhost:8000/users/admin-create", {
         method: "POST",
@@ -92,7 +101,7 @@ export default function AdminCreateUser() {
 
       setNewUserEmail("");
       setNewUserPassword("");
-      setNewUserRole("ANALYST");
+      setNewUserRole("");
       setSuccessMessage(
         `Account created for ${data.user.email}. Password was stored encrypted in the database.`
       );
@@ -166,14 +175,58 @@ export default function AdminCreateUser() {
 
             <div className="input-group">
               <label className="input-label">Administrator Password</label>
-              <input
-                type="password"
-                className="auth-input"
-                placeholder="••••••••"
-                value={adminPassword}
-                onChange={(e) => setAdminPassword(e.target.value)}
-                autoComplete="current-password"
-              />
+              <div className="password-field">
+                <input
+                  type={showAdminPassword ? "text" : "password"}
+                  className="auth-input auth-input-password"
+                  placeholder="••••••••"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowAdminPassword((current) => !current)}
+                  aria-label={showAdminPassword ? "Hide administrator password" : "Show administrator password"}
+                  aria-pressed={showAdminPassword}
+                  title={showAdminPassword ? "Hide password" : "Show password"}
+                >
+                  {showAdminPassword ? (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20C7 20 2.73 16.89 1 12c.92-2.6 2.62-4.82 4.87-6.32" />
+                      <path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c5 0 9.27 3.11 11 8a11.8 11.8 0 0 1-2.16 3.19" />
+                      <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+                      <line x1="1" y1="1" x2="23" y2="23" />
+                    </svg>
+                  ) : (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
+                </button>
+              </div>
             </div>
 
             <button type="submit" className="auth-btn" disabled={isVerifying}>
@@ -200,14 +253,58 @@ export default function AdminCreateUser() {
 
             <div className="input-group">
               <label className="input-label">New User Password</label>
-              <input
-                type="password"
-                className="auth-input"
-                placeholder="••••••••"
-                value={newUserPassword}
-                onChange={(e) => setNewUserPassword(e.target.value)}
-                autoComplete="new-password"
-              />
+              <div className="password-field">
+                <input
+                  type={showNewUserPassword ? "text" : "password"}
+                  className="auth-input auth-input-password"
+                  placeholder="••••••••"
+                  value={newUserPassword}
+                  onChange={(e) => setNewUserPassword(e.target.value)}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowNewUserPassword((current) => !current)}
+                  aria-label={showNewUserPassword ? "Hide new user password" : "Show new user password"}
+                  aria-pressed={showNewUserPassword}
+                  title={showNewUserPassword ? "Hide password" : "Show password"}
+                >
+                  {showNewUserPassword ? (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20C7 20 2.73 16.89 1 12c.92-2.6 2.62-4.82 4.87-6.32" />
+                      <path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c5 0 9.27 3.11 11 8a11.8 11.8 0 0 1-2.16 3.19" />
+                      <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+                      <line x1="1" y1="1" x2="23" y2="23" />
+                    </svg>
+                  ) : (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
+                </button>
+              </div>
             </div>
 
             <div className="input-group">
@@ -215,8 +312,11 @@ export default function AdminCreateUser() {
               <select
                 className="auth-input"
                 value={newUserRole}
-                onChange={(e) => setNewUserRole(e.target.value as Role)}
+                onChange={(e) => setNewUserRole(e.target.value as Role | "")}
               >
+                <option value="" disabled>
+                  Select a role
+                </option>
                 {roleOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
@@ -236,7 +336,11 @@ export default function AdminCreateUser() {
               >
                 Change Admin
               </button>
-              <button type="submit" className="auth-btn" disabled={isCreating}>
+              <button
+                type="submit"
+                className="auth-btn"
+                disabled={isCreating || !newUserRole}
+              >
                 {isCreating ? "Creating..." : "Create Account"}
               </button>
             </div>
