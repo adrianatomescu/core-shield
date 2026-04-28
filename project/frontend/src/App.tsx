@@ -6,20 +6,74 @@ import Dashboard from "./Dashboard";
 import AdminCreateUser from "./AdminCreateUser";
 import "./App.css";
 
+type Language = "en" | "ro";
+
 function AppContent() {
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+  const [language, setLanguage] = useState<Language>(() => {
+    const stored = window.localStorage.getItem("coreshield-language");
+    return stored === "ro" ? "ro" : "en";
+  });
   const location = useLocation();
+
+  const copy = {
+    en: {
+      landingTitle: "CoreShield | Landing Page",
+      loginTitle: "CoreShield | Login",
+      createTitle: "CoreShield | Create Account",
+      dashboardTitle: "CoreShield | Dashboard",
+      footerDegree: "Bachelor's Degree – Automatic Control and Computer Science",
+      modalKicker: "License & Credits",
+      modalTitle: "CoreShield",
+      modalDescription:
+        "A concept-driven security automation experience focused on intelligent monitoring, fast response orchestration and a cinematic interface for modern cyber operations.",
+      githubLabel: "GitHub",
+      aboutLabel: "About Me",
+      aboutCopy:
+        "Ambitious and detail-oriented Computer Science student with a strong interest in software development and blending creativity with technology. Adaptable, eager to learn, and motivated to continuously develop both technical and interpersonal skills.",
+      closeLabel: "Close popup",
+      languageLabel: "Language",
+      english: "EN",
+      romanian: "RO",
+      infoAria: "Open license and author information",
+    },
+    ro: {
+      landingTitle: "CoreShield | Pagina Principală",
+      loginTitle: "CoreShield | Autentificare",
+      createTitle: "CoreShield | Creare Cont",
+      dashboardTitle: "CoreShield | Dashboard",
+      footerDegree: "Licență – Automatică și Calculatoare",
+      modalKicker: "Licență și Credite",
+      modalTitle: "CoreShield",
+      modalDescription:
+        "O experiență de automatizare pentru securitate, construită în jurul monitorizării inteligente, orchestrării rapide a răspunsului și unei interfețe cinematice pentru operațiuni cyber moderne.",
+      githubLabel: "GitHub",
+      aboutLabel: "Despre Mine",
+      aboutCopy:
+        "Studentă ambițioasă și atentă la detalii în domeniul informaticii, cu interes puternic pentru dezvoltarea software și îmbinarea creativității cu tehnologia. Adaptabilă, dornică să învețe și motivată să își dezvolte constant atât competențele tehnice, cât și pe cele interpersonale.",
+      closeLabel: "Închide fereastra",
+      languageLabel: "Limbă",
+      english: "EN",
+      romanian: "RO",
+      infoAria: "Deschide informațiile despre licență și autor",
+    },
+  }[language];
 
   useEffect(() => {
     const pageTitles: Record<string, string> = {
-      "/": "CoreShield | Landing Page",
-      "/login": "CoreShield | Login",
-      "/admin-create-user": "CoreShield | Create Account",
-      "/dashboard": "CoreShield | Dashboard",
+      "/": copy.landingTitle,
+      "/login": copy.loginTitle,
+      "/admin-create-user": copy.createTitle,
+      "/dashboard": copy.dashboardTitle,
     };
 
     document.title = pageTitles[location.pathname] ?? "CoreShield";
-  }, [location.pathname]);
+  }, [copy.createTitle, copy.dashboardTitle, copy.landingTitle, copy.loginTitle, location.pathname]);
+
+  useEffect(() => {
+    document.documentElement.lang = language;
+    window.localStorage.setItem("coreshield-language", language);
+  }, [language]);
 
   useEffect(() => {
     if (!isInfoModalOpen) {
@@ -43,12 +97,34 @@ function AppContent() {
   }, [isInfoModalOpen]);
 
   return (
-    <div className="bg-black text-slate-100 min-h-screen">
+    <div className="app-shell bg-black text-slate-100 min-h-screen">
+      <div className="global-switcher" aria-label="Global preferences">
+        <div className="switcher-group">
+          <span>{copy.languageLabel}</span>
+          <div className="switcher-pills">
+            <button
+              type="button"
+              className={language === "en" ? "switcher-pill active" : "switcher-pill"}
+              onClick={() => setLanguage("en")}
+            >
+              {copy.english}
+            </button>
+            <button
+              type="button"
+              className={language === "ro" ? "switcher-pill active" : "switcher-pill"}
+              onClick={() => setLanguage("ro")}
+            >
+              {copy.romanian}
+            </button>
+          </div>
+        </div>
+      </div>
+
       <main>
         <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/admin-create-user" element={<AdminCreateUser />} />
+          <Route path="/" element={<Landing language={language} />} />
+          <Route path="/login" element={<Login language={language} />} />
+          <Route path="/admin-create-user" element={<AdminCreateUser language={language} />} />
           <Route path="/dashboard" element={<Dashboard />} />
         </Routes>
       </main>
@@ -72,7 +148,7 @@ function AppContent() {
               hover:bg-white/[0.1] hover:border-white/25
               focus:outline-none focus:ring-2 focus:ring-indigo-400/60
             "
-            aria-label="Open license and author information"
+            aria-label={copy.infoAria}
           >
             <span className="text-slate-400 font-mono">© 2026</span>
 
@@ -85,7 +161,7 @@ function AppContent() {
             <span className="hidden md:block h-3 w-[1px] bg-white/20"></span>
 
             <span className="text-slate-300 font-light tracking-wide text-center md:text-left">
-              Bachelor's Degree – Automatic Control and Computer Science
+              {copy.footerDegree}
             </span>
           </button>
         </footer>
@@ -107,7 +183,7 @@ function AppContent() {
               type="button"
               className="info-modal-close"
               onClick={() => setIsInfoModalOpen(false)}
-              aria-label="Close popup"
+              aria-label={copy.closeLabel}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -126,19 +202,17 @@ function AppContent() {
             </button>
 
             <div className="info-modal-header">
-              <p className="info-modal-kicker">License & Credits</p>
+              <p className="info-modal-kicker">{copy.modalKicker}</p>
               <h2 id="info-modal-title" className="info-modal-title">
-                CoreShield
+                {copy.modalTitle}
               </h2>
               <p className="info-modal-description">
-                A concept-driven security automation experience focused on
-                intelligent monitoring, fast response orchestration and a
-                cinematic interface for modern cyber operations.
+                {copy.modalDescription}
               </p>
             </div>
 
             <div className="info-modal-section">
-              <span className="info-section-label">GitHub</span>
+              <span className="info-section-label">{copy.githubLabel}</span>
               <a
                 href="https://github.com/adrianatomescu/core-shield"
                 target="_blank"
@@ -150,12 +224,9 @@ function AppContent() {
             </div>
 
             <div className="info-modal-section">
-              <span className="info-section-label">About Me</span>
+              <span className="info-section-label">{copy.aboutLabel}</span>
               <p className="info-about-copy">
-                Ambitious and detail-oriented Computer Science student with a
-                strong interest in software development and blending creativity
-                with technology. Adaptable, eager to learn, and motivated to
-                continuously develop both technical and interpersonal skills.
+                {copy.aboutCopy}
               </p>
             </div>
           </div>

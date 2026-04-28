@@ -20,6 +20,63 @@ body {
   width: 100%;
   min-height: 100vh;
   overflow-x: hidden;
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+.app-shell {
+  position: relative;
+}
+
+.global-switcher {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 100;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(8, 15, 30, 0.72);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
+}
+
+.switcher-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.switcher-group span {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #9fb0c5;
+}
+
+.switcher-pills {
+  display: flex;
+  gap: 8px;
+}
+
+.switcher-pill {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: 180ms ease;
+}
+
+.switcher-pill.active {
+  color: #07111f;
+  background: linear-gradient(135deg, #7dd3fc, #fef08a);
 }
 
 /* Stilizare selecție text - Indigo */
@@ -146,6 +203,20 @@ body {
   color: #cbd5e1;
   font-size: 1rem;
   line-height: 1.85;
+}
+
+@media (max-width: 640px) {
+  .global-switcher {
+    top: auto;
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+  }
+
+  .switcher-group {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 @media (max-width: 640px) {

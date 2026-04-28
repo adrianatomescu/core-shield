@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import DarkVeil from "./DarkVeil"; 
 
+type Language = "en" | "ro";
+
 function useTypewriter(text: string) {
   const [displayedText, setDisplayedText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -54,14 +56,34 @@ function useTypewriter(text: string) {
   return displayedText;
 }
 
-export default function Landing() {
+export default function Landing({
+  language,
+}: {
+  language: Language;
+}) {
   const navigate = useNavigate();
-  const subtitleText = "Intelligent Monitoring. Orchestrating Response. Protecting Critical Operations.";
+  const copy = {
+    en: {
+      badge: "Active Threat Monitoring",
+      product: "Security Automation Engine",
+      subtitle:
+        "Intelligent Monitoring. Orchestrating Response. Protecting Critical Operations.",
+      cta: "Get Started",
+    },
+    ro: {
+      badge: "Monitorizare Activă a Amenințărilor",
+      product: "Motor de Automatizare pentru Securitate",
+      subtitle:
+        "Monitorizare inteligentă. Orchestrarea răspunsului. Protejarea operațiunilor critice.",
+      cta: "Începe",
+    },
+  }[language];
+  const subtitleText = copy.subtitle;
   
   const displayedText = useTypewriter(subtitleText);
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col items-center justify-center overflow-hidden bg-black">
+    <div className="landing-page relative min-h-screen w-full flex flex-col items-center justify-center overflow-hidden bg-black">
       
       {/* --- FUNDAL DARK VEIL --- */}
       <div className="absolute inset-0 z-0">
@@ -76,7 +98,7 @@ export default function Landing() {
       </div>
 
       {/* Vignette pentru contrast */}
-      <div className="absolute inset-0 z-[1] bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)] pointer-events-none" />
+      <div className="absolute inset-0 z-[1] pointer-events-none bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)]" />
 
       {/* --- CONȚINUT --- */}
       <div className="relative z-10 flex flex-col items-center text-center px-6 -mt-10">
@@ -93,18 +115,18 @@ export default function Landing() {
               <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-400"></span>
             </span>
             <span className="text-[11px] font-bold uppercase tracking-widest text-indigo-300">
-              Active Threat Monitoring
+              {copy.badge}
             </span>
           </div>
 
           {/* Titlu */}
-          <h1 className="mb-6 text-5xl font-bold tracking-tight text-white sm:text-7xl md:text-8xl">
+          <h1 className="mb-6 text-5xl font-bold tracking-tight sm:text-7xl md:text-8xl">
             <span className="bg-gradient-to-b from-white to-slate-400 bg-clip-text text-transparent">
               CoreShield
             </span>
           </h1>
           <p className="mb-8 text-2xl font-light text-slate-400 sm:text-4xl">
-            Security Automation Engine
+            {copy.product}
           </p>
 
           {/* Subtitlu Typewriter */}
@@ -121,7 +143,7 @@ export default function Landing() {
             onClick={() => navigate('/login')}
             className="mt-10 rounded-full bg-white px-9 py-4 text-sm font-bold text-black shadow-[0_0_30px_-5px_rgba(255,255,255,0.4)] transition-all hover:scale-105 hover:shadow-[0_0_50px_-10px_rgba(255,255,255,0.6)] cursor-pointer"
           >
-            Get Started
+            {copy.cta}
           </button>
         </motion.div>
       </div>

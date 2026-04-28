@@ -5,7 +5,7 @@ import "./Login.css";
 
 type Role = "ADMIN" | "MANAGER" | "SECURITY_ENGINEER" | "ANALYST" | "AUDITOR";
 
-export default function Login() {
+export default function Login({ language }: { language: "en" | "ro" }) {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -13,6 +13,42 @@ export default function Login() {
   const [role, setRole] = useState<Role>("ADMIN");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const copy = {
+    en: {
+      title: "Access Portal",
+      subtitle: "Identify yourself to access the engine.",
+      email: "Email Address",
+      password: "Password",
+      role: "Role",
+      admin: "Administrator",
+      manager: "Manager",
+      engineer: "Security Engineer",
+      analyst: "Analyst",
+      auditor: "Auditor",
+      authenticate: "Authenticate",
+      authenticating: "Authenticating...",
+      helper:
+        "Need to provision a new operator? Use the add-account icon above and verify with an administrator account first.",
+      back: "← Return to Homepage",
+    },
+    ro: {
+      title: "Portal de Acces",
+      subtitle: "Identifică-te pentru a intra în platformă.",
+      email: "Adresă de Email",
+      password: "Parolă",
+      role: "Rol",
+      admin: "Administrator",
+      manager: "Manager",
+      engineer: "Inginer de Securitate",
+      analyst: "Analist",
+      auditor: "Auditor",
+      authenticate: "Autentificare",
+      authenticating: "Se autentifică...",
+      helper:
+        "Vrei să creezi un operator nou? Folosește iconița de adăugare cont de mai sus și validează mai întâi un cont de administrator.",
+      back: "← Înapoi la Pagina Principală",
+    },
+  }[language];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,12 +143,12 @@ export default function Login() {
           </div>
         </div>
 
-        <h2 className="login-title">Access Portal</h2>
-        <p className="login-subtitle">Identify yourself to access the engine.</p>
+        <h2 className="login-title">{copy.title}</h2>
+        <p className="login-subtitle">{copy.subtitle}</p>
 
         <form onSubmit={handleSubmit}>
           <div className="input-group">
-            <label className="input-label">Email Address</label>
+            <label className="input-label">{copy.email}</label>
             <input
               type="text"
               className="auth-input"
@@ -124,7 +160,7 @@ export default function Login() {
           </div>
 
           <div className="input-group">
-            <label className="input-label">Password</label>
+            <label className="input-label">{copy.password}</label>
             <div className="password-field">
               <input
                 type={showPassword ? "text" : "password"}
@@ -180,35 +216,34 @@ export default function Login() {
           </div>
 
           <div className="input-group">
-            <label className="input-label">Role</label>
+            <label className="input-label">{copy.role}</label>
             <select
               className="auth-input"
               value={role}
               onChange={(e) => setRole(e.target.value as Role)}
             >
-              <option value="ADMIN">Administrator</option>
-              <option value="MANAGER">Manager</option>
-              <option value="SECURITY_ENGINEER">Security Engineer</option>
-              <option value="ANALYST">Analyst</option>
-              <option value="AUDITOR">Auditor</option>
+              <option value="ADMIN">{copy.admin}</option>
+              <option value="MANAGER">{copy.manager}</option>
+              <option value="SECURITY_ENGINEER">{copy.engineer}</option>
+              <option value="ANALYST">{copy.analyst}</option>
+              <option value="AUDITOR">{copy.auditor}</option>
             </select>
           </div>
 
           <button type="submit" className="auth-btn" disabled={isLoading}>
-            {isLoading ? "Authenticating..." : "Authenticate"}
+            {isLoading ? copy.authenticating : copy.authenticate}
           </button>
         </form>
 
         {errorMessage ? <p className="auth-error">{errorMessage}</p> : null}
 
         <p className="helper-copy">
-          Need to provision a new operator? Use the add-account icon above and
-          verify with an administrator account first.
+          {copy.helper}
         </p>
 
         <div className="back-link-container">
           <Link to="/" className="back-link">
-            ← Return to Homepage
+            {copy.back}
           </Link>
         </div>
       </motion.div>

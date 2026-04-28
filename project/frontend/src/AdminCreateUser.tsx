@@ -13,7 +13,7 @@ const roleOptions: Array<{ value: Role; label: string }> = [
   { value: "AUDITOR", label: "Auditor" },
 ];
 
-export default function AdminCreateUser() {
+export default function AdminCreateUser({ language }: { language: "en" | "ro" }) {
   const [adminEmail, setAdminEmail] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
   const [showAdminPassword, setShowAdminPassword] = useState(false);
@@ -26,6 +26,54 @@ export default function AdminCreateUser() {
   const [isAdminVerified, setIsAdminVerified] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const copy = {
+    en: {
+      title: "Provision New Account",
+      subtitle: "First verify an administrator account, then register the new operator.",
+      stepOne: "1. Admin Verification",
+      stepTwo: "2. Create Account",
+      adminEmail: "Administrator Email",
+      adminPassword: "Administrator Password",
+      verify: "Verify Administrator",
+      verifying: "Verifying...",
+      verified: "Administrator verified. You can now create a new account.",
+      roleRequired: "Please select a role for the new account.",
+      created: "Account created for {email}. Password was stored encrypted in the database.",
+      newUserEmail: "New User Email",
+      newUserPassword: "New User Password",
+      role: "Role",
+      selectRole: "Select a role",
+      changeAdmin: "Change Admin",
+      create: "Create Account",
+      creating: "Creating...",
+      verifiedBanner: "Administrator `{email}` verified successfully.",
+      goToLogin: "Go To Login",
+      back: "← Return to Login",
+    },
+    ro: {
+      title: "Creare Cont Nou",
+      subtitle: "Mai întâi verifică un cont de administrator, apoi înregistrează noul operator.",
+      stepOne: "1. Verificare Admin",
+      stepTwo: "2. Creare Cont",
+      adminEmail: "Email Administrator",
+      adminPassword: "Parolă Administrator",
+      verify: "Verifică Administratorul",
+      verifying: "Se verifică...",
+      verified: "Administrator verificat. Acum poți crea un cont nou.",
+      roleRequired: "Te rog selectează un rol pentru noul cont.",
+      created: "Cont creat pentru {email}. Parola a fost stocată criptat în baza de date.",
+      newUserEmail: "Email Utilizator Nou",
+      newUserPassword: "Parolă Utilizator Nou",
+      role: "Rol",
+      selectRole: "Selectează un rol",
+      changeAdmin: "Schimbă Adminul",
+      create: "Creează Cont",
+      creating: "Se creează...",
+      verifiedBanner: "Administratorul `{email}` a fost verificat cu succes.",
+      goToLogin: "Mergi la Login",
+      back: "← Înapoi la Login",
+    },
+  }[language];
 
   const handleAdminVerification = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,7 +101,7 @@ export default function AdminCreateUser() {
       }
 
       setIsAdminVerified(true);
-      setSuccessMessage("Administrator verified. You can now create a new account.");
+      setSuccessMessage(copy.verified);
     } catch (error) {
       setIsAdminVerified(false);
       setErrorMessage(
@@ -73,7 +121,7 @@ export default function AdminCreateUser() {
     setSuccessMessage("");
 
     if (!newUserRole) {
-      setErrorMessage("Please select a role for the new account.");
+      setErrorMessage(copy.roleRequired);
       setIsCreating(false);
       return;
     }
@@ -102,9 +150,7 @@ export default function AdminCreateUser() {
       setNewUserEmail("");
       setNewUserPassword("");
       setNewUserRole("");
-      setSuccessMessage(
-        `Account created for ${data.user.email}. Password was stored encrypted in the database.`
-      );
+      setSuccessMessage(copy.created.replace("{email}", data.user.email));
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "The backend could not be reached."
@@ -145,24 +191,22 @@ export default function AdminCreateUser() {
           </div>
         </div>
 
-        <h2 className="login-title">Provision New Account</h2>
-        <p className="login-subtitle">
-          First verify an administrator account, then register the new operator.
-        </p>
+        <h2 className="login-title">{copy.title}</h2>
+        <p className="login-subtitle">{copy.subtitle}</p>
 
         <div className="step-indicator">
           <span className={isAdminVerified ? "step-pill is-complete" : "step-pill is-active"}>
-            1. Admin Verification
+            {copy.stepOne}
           </span>
           <span className={isAdminVerified ? "step-pill is-active" : "step-pill"}>
-            2. Create Account
+            {copy.stepTwo}
           </span>
         </div>
 
         {!isAdminVerified ? (
           <form onSubmit={handleAdminVerification}>
             <div className="input-group">
-              <label className="input-label">Administrator Email</label>
+              <label className="input-label">{copy.adminEmail}</label>
               <input
                 type="text"
                 className="auth-input"
@@ -174,7 +218,7 @@ export default function AdminCreateUser() {
             </div>
 
             <div className="input-group">
-              <label className="input-label">Administrator Password</label>
+              <label className="input-label">{copy.adminPassword}</label>
               <div className="password-field">
                 <input
                   type={showAdminPassword ? "text" : "password"}
@@ -230,17 +274,17 @@ export default function AdminCreateUser() {
             </div>
 
             <button type="submit" className="auth-btn" disabled={isVerifying}>
-              {isVerifying ? "Verifying..." : "Verify Administrator"}
+              {isVerifying ? copy.verifying : copy.verify}
             </button>
           </form>
         ) : (
           <form onSubmit={handleCreateUser}>
             <div className="verified-banner">
-              Administrator `{adminEmail}` verified successfully.
+              {copy.verifiedBanner.replace("{email}", adminEmail)}
             </div>
 
             <div className="input-group">
-              <label className="input-label">New User Email</label>
+              <label className="input-label">{copy.newUserEmail}</label>
               <input
                 type="text"
                 className="auth-input"
@@ -252,7 +296,7 @@ export default function AdminCreateUser() {
             </div>
 
             <div className="input-group">
-              <label className="input-label">New User Password</label>
+              <label className="input-label">{copy.newUserPassword}</label>
               <div className="password-field">
                 <input
                   type={showNewUserPassword ? "text" : "password"}
@@ -308,14 +352,14 @@ export default function AdminCreateUser() {
             </div>
 
             <div className="input-group">
-              <label className="input-label">Role</label>
+              <label className="input-label">{copy.role}</label>
               <select
                 className="auth-input"
                 value={newUserRole}
                 onChange={(e) => setNewUserRole(e.target.value as Role | "")}
               >
                 <option value="" disabled>
-                  Select a role
+                  {copy.selectRole}
                 </option>
                 {roleOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -334,14 +378,14 @@ export default function AdminCreateUser() {
                   setSuccessMessage("");
                 }}
               >
-                Change Admin
+                {copy.changeAdmin}
               </button>
               <button
                 type="submit"
                 className="auth-btn"
                 disabled={isCreating || !newUserRole}
               >
-                {isCreating ? "Creating..." : "Create Account"}
+                {isCreating ? copy.creating : copy.create}
               </button>
             </div>
           </form>
@@ -352,14 +396,14 @@ export default function AdminCreateUser() {
         {successMessage && isAdminVerified ? (
           <div className="back-link-container">
             <Link to="/login" className="success-link-btn">
-              Go To Login
+              {copy.goToLogin}
             </Link>
           </div>
         ) : null}
 
         <div className="back-link-container">
           <Link to="/login" className="back-link">
-            ← Return to Login
+            {copy.back}
           </Link>
         </div>
       </motion.div>

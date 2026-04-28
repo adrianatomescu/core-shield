@@ -12,6 +12,12 @@
     "Segoe UI", Roboto, sans-serif;
 }
 
+:root[data-theme="light"] .login-page {
+  background:
+    radial-gradient(circle at top left, rgba(99, 102, 241, 0.12), transparent 30%),
+    linear-gradient(180deg, #f8fbff, #edf4ff);
+}
+
 /* Orb animat */
 .login-glow {
   position: absolute;
@@ -52,6 +58,15 @@
     inset 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
+:root[data-theme="light"] .glass-card {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(148, 163, 184, 0.2);
+  border-top-color: rgba(255, 255, 255, 0.7);
+  box-shadow:
+    0 25px 50px -12px rgba(15, 23, 42, 0.16),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
 .glass-card-wide {
   max-width: 480px;
 }
@@ -86,6 +101,12 @@
   box-shadow: 0 0 18px rgba(99, 102, 241, 0.18);
 }
 
+:root[data-theme="light"] .create-account-link {
+  color: #475569;
+  border-color: rgba(148, 163, 184, 0.22);
+  background: rgba(255, 255, 255, 0.66);
+}
+
 .lock-icon {
   width: 48px;
   height: 48px;
@@ -99,6 +120,12 @@
   box-shadow: 0 0 15px rgba(99, 102, 241, 0.2);
 }
 
+:root[data-theme="light"] .lock-icon {
+  color: #4f46e5;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(255, 255, 255, 0.92));
+  border-color: rgba(99, 102, 241, 0.18);
+}
+
 .login-title {
   color: #ffffff;
   font-size: 1.75rem;
@@ -108,12 +135,24 @@
   margin: 0;
 }
 
+:root[data-theme="light"] .login-title {
+  color: #0f172a;
+}
+
 .login-subtitle {
   color: #64748b;
   font-size: 0.875rem;
   text-align: center;
   margin-top: 0.5rem;
   margin-bottom: 2.5rem;
+}
+
+:root[data-theme="light"] .input-label,
+:root[data-theme="light"] .login-subtitle,
+:root[data-theme="light"] .helper-copy,
+:root[data-theme="light"] .back-link,
+:root[data-theme="light"] .step-pill {
+  color: #64748b;
 }
 
 /* --- Formular --- */
@@ -145,6 +184,17 @@
   font-size: 0.9rem;
   outline: none;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+:root[data-theme="light"] .auth-input {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(148, 163, 184, 0.22);
+  color: #0f172a;
+}
+
+:root[data-theme="light"] select.auth-input option {
+  background-color: #ffffff;
+  color: #0f172a;
 }
 
 .auth-input::placeholder {
@@ -181,6 +231,12 @@
   color: #94a3b8;
   cursor: pointer;
   transition: all 0.2s ease;
+}
+
+:root[data-theme="light"] .password-toggle {
+  color: #64748b;
+  border-color: rgba(148, 163, 184, 0.24);
+  background: rgba(241, 245, 249, 0.8);
 }
 
 .password-toggle:hover {
@@ -241,6 +297,12 @@ select.auth-input option {
   box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
   position: relative;
   overflow: hidden;
+}
+
+:root[data-theme="light"] .auth-btn {
+  background: #0f172a;
+  color: #ffffff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
 }
 
 .auth-btn:hover {

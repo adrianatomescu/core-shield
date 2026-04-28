@@ -10,6 +10,15 @@
   color: #e5eef8;
 }
 
+:root[data-theme="light"] .dashboard-shell {
+  background:
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.12), transparent 30%),
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.1), transparent 28%),
+    radial-gradient(circle at bottom, rgba(59, 130, 246, 0.08), transparent 24%),
+    #eef4ff;
+  color: #0f172a;
+}
+
 .dashboard-backdrop {
   position: absolute;
   inset: 0;
@@ -41,6 +50,12 @@
   backdrop-filter: blur(20px);
 }
 
+:root[data-theme="light"] .dashboard-hero {
+  border-color: rgba(148, 163, 184, 0.18);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(241, 245, 249, 0.88));
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.12);
+}
+
 .dashboard-kicker,
 .eyebrow {
   display: inline-flex;
@@ -65,6 +80,23 @@
   color: #90a3b8;
   font-size: 1.02rem;
   line-height: 1.8;
+}
+
+:root[data-theme="light"] .dashboard-subtitle,
+:root[data-theme="light"] .section-heading span,
+:root[data-theme="light"] .flow-meta p,
+:root[data-theme="light"] .table-row span,
+:root[data-theme="light"] .alert-card p,
+:root[data-theme="light"] .incident-card p,
+:root[data-theme="light"] .timeline-item p,
+:root[data-theme="light"] .mail-thread-item p,
+:root[data-theme="light"] .task-card p,
+:root[data-theme="light"] .message-bubble p,
+:root[data-theme="light"] .security-summary-card p,
+:root[data-theme="light"] .security-mission-card p,
+:root[data-theme="light"] .security-side-card p,
+:root[data-theme="light"] .commit-card p {
+  color: #5b6b83;
 }
 
 .hero-actions {
@@ -99,12 +131,37 @@
   background: rgba(125, 211, 252, 0.12);
 }
 
+:root[data-theme="light"] .mail-icon-button {
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(125, 211, 252, 0.32);
+}
+
 .identity-card {
   min-width: 240px;
   padding: 18px 20px;
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="light"] .identity-card,
+:root[data-theme="light"] .workspace-mailbox,
+:root[data-theme="light"] .mail-panel,
+:root[data-theme="light"] .conversation-panel,
+:root[data-theme="light"] .task-panel,
+:root[data-theme="light"] .builder-sidebar,
+:root[data-theme="light"] .builder-canvas,
+:root[data-theme="light"] .security-summary-card,
+:root[data-theme="light"] .security-mission-card,
+:root[data-theme="light"] .security-side-card,
+:root[data-theme="light"] .commit-card,
+:root[data-theme="light"] .code-editor-card,
+:root[data-theme="light"] .code-lab-files,
+:root[data-theme="light"] .chart-card,
+:root[data-theme="light"] .report-type-card {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(148, 163, 184, 0.18);
 }
 
 .identity-label,
@@ -142,6 +199,7 @@
   cursor: pointer;
   transition: 180ms ease;
   font: inherit;
+  text-decoration: none;
 }
 
 .primary-button,
@@ -167,6 +225,18 @@
   color: #e5eef8;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="light"] .ghost-button,
+:root[data-theme="light"] .mini-button,
+:root[data-theme="light"] .role-chip,
+:root[data-theme="light"] .action-tile,
+:root[data-theme="light"] .builder-list-item,
+:root[data-theme="light"] .flow-add,
+:root[data-theme="light"] .toggle-chip {
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(148, 163, 184, 0.18);
 }
 
 .primary-button:hover,
@@ -229,12 +299,55 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
+:root[data-theme="light"] .dashboard-card {
+  border-color: rgba(148, 163, 184, 0.18);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(241, 245, 249, 0.88));
+  box-shadow:
+    0 16px 40px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
 .hero-panel {
   padding: 28px;
 }
 
 .workspace-card {
   overflow: hidden;
+}
+
+.security-engineer-shell {
+  background:
+    radial-gradient(circle at top left, rgba(134, 239, 172, 0.12), transparent 32%),
+    radial-gradient(circle at bottom right, rgba(125, 211, 252, 0.12), transparent 28%),
+    linear-gradient(180deg, rgba(14, 19, 35, 0.94), rgba(7, 11, 24, 0.9));
+}
+
+.analyst-shell {
+  background:
+    radial-gradient(circle at top left, rgba(251, 191, 36, 0.12), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(56, 189, 248, 0.1), transparent 28%),
+    linear-gradient(180deg, rgba(14, 19, 35, 0.94), rgba(7, 11, 24, 0.9));
+}
+
+.auditor-shell {
+  background:
+    radial-gradient(circle at top left, rgba(244, 114, 182, 0.11), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(125, 211, 252, 0.1), transparent 28%),
+    linear-gradient(180deg, rgba(14, 19, 35, 0.94), rgba(7, 11, 24, 0.9));
+}
+
+.manager-shell {
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.11), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(250, 204, 21, 0.1), transparent 28%),
+    linear-gradient(180deg, rgba(14, 19, 35, 0.94), rgba(7, 11, 24, 0.9));
+}
+
+.admin-shell {
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.14), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(134, 239, 172, 0.11), transparent 28%),
+    linear-gradient(180deg, rgba(14, 19, 35, 0.94), rgba(7, 11, 24, 0.9));
 }
 
 .workspace-focus {
@@ -288,6 +401,158 @@
   margin: 22px 0;
 }
 
+.security-summary-grid,
+.security-mission-grid,
+.security-side-list,
+.commit-list,
+.chart-grid,
+.incident-db-meta {
+  display: grid;
+  gap: 14px;
+}
+
+.security-summary-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 24px;
+}
+
+.security-summary-card,
+.security-mission-card,
+.security-side-card,
+.commit-card,
+.code-editor-card,
+.code-lab-files,
+.report-type-card {
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.security-summary-card strong,
+.security-mission-card strong,
+.security-side-card strong,
+.commit-card strong {
+  display: block;
+}
+
+.security-summary-card strong {
+  margin: 10px 0 8px;
+  font-size: 2rem;
+}
+
+.security-summary-card p,
+.security-mission-card p,
+.security-side-card p,
+.security-panel-copy,
+.commit-card p {
+  margin: 0;
+  color: #91a2b7;
+}
+
+.security-mission-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin-top: 16px;
+}
+
+.analyst-capability-grid,
+.analyst-report-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.analyst-capability-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 16px;
+}
+
+.security-mission-card strong,
+.security-side-card strong {
+  margin-bottom: 10px;
+}
+
+.security-side-stack {
+  align-self: start;
+}
+
+.analyst-side-stack {
+  align-self: start;
+}
+
+.security-panel-copy {
+  margin-top: 10px;
+  max-width: 680px;
+}
+
+.report-type-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 22px 0;
+}
+
+.report-type-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.report-type-card strong {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.report-type-card p {
+  margin: 0;
+  color: #91a2b7;
+}
+
+.report-type-card.active {
+  border-color: rgba(244, 114, 182, 0.28);
+  box-shadow: 0 0 0 1px rgba(244, 114, 182, 0.08);
+}
+
+.chart-grid {
+  margin-top: 18px;
+}
+
+.chart-grid-three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.chart-grid-four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.chart-card {
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.chart-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.chart-card-head strong {
+  display: block;
+}
+
+.chart-card-head span {
+  color: #9db0c7;
+  font-size: 0.82rem;
+}
+
+.security-db-grid {
+  margin-top: 22px;
+}
+
 .stat-card {
   padding: 18px;
   border-radius: 22px;
@@ -316,6 +581,13 @@
   grid-template-columns: 1.2fr 0.8fr;
 }
 
+.admin-db-layout {
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  gap: 16px;
+  align-items: start;
+}
+
 .config-stack,
 .scope-list,
 .table-list,
@@ -323,7 +595,9 @@
 .incident-stack,
 .timeline,
 .builder-list,
-.task-list {
+.task-list,
+.meeting-list,
+.daily-list {
   display: grid;
   gap: 12px;
 }
@@ -333,6 +607,17 @@
   grid-template-columns: 320px 1fr 320px;
   gap: 18px;
   margin-top: 20px;
+}
+
+.workspace-meta-layout {
+  display: grid;
+  grid-template-columns: 1.25fr 0.75fr;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.workspace-meta-card {
+  padding: 18px;
 }
 
 .workspace-mailbox {
@@ -378,6 +663,23 @@
 .mail-thread-item.active {
   background: rgba(125, 211, 252, 0.09);
   border-color: rgba(125, 211, 252, 0.22);
+}
+
+:root[data-theme="light"] .mail-thread-item,
+:root[data-theme="light"] .task-card,
+:root[data-theme="light"] .message-bubble,
+:root[data-theme="light"] .table-row,
+:root[data-theme="light"] .alert-card,
+:root[data-theme="light"] .incident-card,
+:root[data-theme="light"] .timeline-item,
+:root[data-theme="light"] .config-row,
+:root[data-theme="light"] .toggle-row,
+:root[data-theme="light"] .scope-row,
+:root[data-theme="light"] .incident-graph-node,
+:root[data-theme="light"] .incident-db-meta span,
+:root[data-theme="light"] .code-editor-preview {
+  background: rgba(248, 250, 252, 0.9);
+  border-color: rgba(148, 163, 184, 0.16);
 }
 
 .mail-thread-head,
@@ -440,6 +742,53 @@
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.incident-db-meta {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 14px 0;
+}
+
+.incident-db-meta span {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: #c9d7e6;
+  font-size: 0.85rem;
+}
+
+.incident-graph-strip {
+  display: grid;
+  grid-template-columns: 1fr 32px 1fr 32px 1fr;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.incident-graph-node {
+  padding: 14px;
+  border-radius: 18px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.incident-graph-node strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 1.3rem;
+}
+
+.incident-graph-node span {
+  color: #9db0c7;
+  font-size: 0.8rem;
+}
+
+.incident-graph-connector {
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(251, 191, 36, 0.55), rgba(56, 189, 248, 0.55));
 }
 
 .config-row,
@@ -507,6 +856,9 @@
 .exec-success { background: rgba(34, 197, 94, 0.18); color: #86efac; }
 .exec-failed { background: rgba(244, 63, 94, 0.18); color: #fda4af; }
 .exec-running { background: rgba(56, 189, 248, 0.18); color: #7dd3fc; }
+.commit-merged { background: rgba(34, 197, 94, 0.18); color: #86efac; }
+.commit-review { background: rgba(250, 204, 21, 0.18); color: #fde047; }
+.commit-draft { background: rgba(56, 189, 248, 0.18); color: #7dd3fc; }
 
 .incident-meta {
   display: flex;
@@ -540,11 +892,22 @@
   gap: 12px;
 }
 
+.analyst-tool-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .action-tile {
   min-height: 104px;
   padding: 18px;
   border-radius: 22px;
   text-align: left;
+}
+
+.analyst-tool-tile {
+  min-height: 88px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.03));
 }
 
 .mini-chart {
@@ -611,6 +974,12 @@
   margin-top: 20px;
 }
 
+.code-lab-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 16px;
+}
+
 .builder-sidebar,
 .builder-canvas {
   padding: 18px;
@@ -634,6 +1003,58 @@
 .builder-list-item span,
 .toolbox-pills span {
   color: #9db0c7;
+}
+
+.code-lab-files {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.code-lab-label,
+.code-editor-topline span,
+.commit-topline span,
+.commit-meta {
+  color: #9db0c7;
+  font-size: 0.82rem;
+}
+
+.code-editor-card {
+  display: grid;
+  gap: 14px;
+  background: linear-gradient(180deg, rgba(6, 10, 21, 0.98), rgba(10, 16, 30, 0.95));
+}
+
+.code-editor-topline,
+.commit-topline,
+.commit-meta,
+.code-lab-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.code-editor-preview {
+  margin: 0;
+  padding: 16px;
+  overflow-x: auto;
+  border-radius: 18px;
+  background: rgba(2, 6, 18, 0.92);
+  border: 1px solid rgba(125, 211, 252, 0.1);
+  color: #dbeafe;
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+
+.code-lab-footer {
+  color: #91a2b7;
+  font-size: 0.85rem;
+}
+
+.analyst-report-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .toolbox {
@@ -702,21 +1123,73 @@
   border-radius: 18px;
 }
 
+.commit-card {
+  display: grid;
+  gap: 12px;
+}
+
+.commit-topline {
+  align-items: flex-start;
+}
+
+.commit-topline strong {
+  margin-bottom: 6px;
+}
+
 .editor-field {
   display: grid;
   gap: 10px;
   margin-bottom: 14px;
 }
 
+.editor-field input,
 .editor-field textarea {
-  min-height: 148px;
   padding: 14px;
-  resize: vertical;
   border-radius: 18px;
   color: #dce8f5;
   background: rgba(3, 7, 18, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.08);
   font: inherit;
+}
+
+.editor-field textarea {
+  min-height: 148px;
+  resize: vertical;
+}
+
+.meeting-card,
+.daily-card {
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.meeting-head,
+.meeting-meta,
+.meeting-form-grid {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.meeting-meta {
+  color: #9db0c7;
+  font-size: 0.84rem;
+  margin-top: 12px;
+}
+
+.meeting-form {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.meeting-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .audit-table {
@@ -760,8 +1233,20 @@ input[type="range"] {
 
   .builder-layout,
   .workspace-layout,
+  .workspace-meta-layout,
   .dashboard-split,
-  .stats-grid {
+  .admin-db-layout,
+  .stats-grid,
+  .security-summary-grid,
+  .security-mission-grid,
+  .code-lab-layout,
+  .analyst-capability-grid,
+  .analyst-report-grid,
+  .analyst-tool-grid,
+  .chart-grid-three,
+  .chart-grid-four,
+  .incident-db-meta,
+  .report-type-grid {
     grid-template-columns: 1fr;
   }
 
@@ -786,14 +1271,17 @@ input[type="range"] {
     border-radius: 24px;
   }
 
-  .action-grid {
+  .action-grid,
+  .analyst-tool-grid,
+  .meeting-form-grid {
     grid-template-columns: 1fr;
   }
 
   .timeline-item,
   .audit-header,
   .audit-row,
-  .mini-chart-row {
+  .mini-chart-row,
+  .incident-graph-strip {
     grid-template-columns: 1fr;
   }
 
