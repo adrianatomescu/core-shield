@@ -1414,9 +1414,234 @@
 }
 
 .security-studio-config input,
+.security-studio-config select,
 .security-studio-config textarea,
 .security-generic-detail textarea {
   padding: 11px;
+}
+
+.security-studio-config select {
+  border: 1px solid rgba(167, 139, 250, 0.18);
+  border-radius: 10px;
+  color: #ede9fe;
+  background: #130d22;
+  font: inherit;
+}
+
+.analyst-studio-layout {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr) 330px;
+  min-height: calc(100vh - 88px);
+}
+
+.analyst-studio-canvas {
+  min-width: 0;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(109, 40, 217, 0.14), transparent 40%),
+    rgba(4, 3, 10, 0.6);
+}
+
+.analyst-preview-card {
+  min-height: 390px;
+  margin-top: 34px;
+  padding: 28px;
+  border: 1px solid rgba(167, 139, 250, 0.18);
+  border-radius: 20px;
+  background: rgba(11, 7, 22, 0.74);
+}
+
+.analyst-bar-chart,
+.analyst-line-chart {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  height: 320px;
+}
+
+.analyst-bar-chart > div {
+  display: flex;
+  flex-direction: column;
+  justify-content: end;
+  gap: 8px;
+  text-align: center;
+}
+
+.analyst-bar-chart span {
+  min-height: 12px;
+  border-radius: 12px 12px 4px 4px;
+  background: linear-gradient(180deg, #a78bfa, #6d28d9);
+  box-shadow: 0 0 24px rgba(124, 58, 237, 0.24);
+}
+
+.analyst-bar-chart small,
+.analyst-line-chart small,
+.analyst-chart-legend span,
+.analyst-report-charts small {
+  color: #998fa9;
+  font-size: 0.72rem;
+}
+
+.analyst-line-chart {
+  align-items: end;
+  padding-top: 20px;
+}
+
+.analyst-line-point {
+  position: relative;
+  height: 100%;
+  border-bottom: 1px solid rgba(167, 139, 250, 0.22);
+  text-align: center;
+}
+
+.analyst-line-point span {
+  position: absolute;
+  left: calc(50% - 7px);
+  width: 14px;
+  height: 14px;
+  border: 3px solid #c4b5fd;
+  border-radius: 99px;
+  background: #6d28d9;
+  box-shadow: 0 0 18px rgba(167, 139, 250, 0.7);
+}
+
+.analyst-line-point small,
+.analyst-line-point strong {
+  position: absolute;
+  right: 0;
+  bottom: -24px;
+  left: 0;
+}
+
+.analyst-line-point strong {
+  bottom: 8px;
+  color: #ddd6fe;
+}
+
+.analyst-donut-layout {
+  display: flex;
+  min-height: 320px;
+  gap: 36px;
+  align-items: center;
+  justify-content: center;
+}
+
+.analyst-donut {
+  display: grid;
+  width: 210px;
+  height: 210px;
+  place-items: center;
+  align-content: center;
+  border: 34px solid rgba(124, 58, 237, 0.82);
+  border-right-color: #c4b5fd;
+  border-bottom-color: #8b5cf6;
+  border-radius: 50%;
+  box-shadow: 0 0 40px rgba(109, 40, 217, 0.3);
+}
+
+.analyst-donut strong {
+  font-size: 2rem;
+}
+
+.analyst-donut span {
+  color: #998fa9;
+  font-size: 0.76rem;
+}
+
+.analyst-chart-legend,
+.analyst-report-charts {
+  display: grid;
+  gap: 9px;
+}
+
+.analyst-chart-legend i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  border-radius: 99px;
+  background: #a78bfa;
+}
+
+.analyst-report-charts {
+  margin-top: 26px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(167, 139, 250, 0.14);
+}
+
+.analyst-report-charts article {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(167, 139, 250, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.analyst-report-charts strong,
+.analyst-report-charts small {
+  display: block;
+}
+
+.analyst-report-charts button {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  color: #a78bfa;
+  background: transparent;
+  cursor: pointer;
+}
+
+.analyst-report-charts svg {
+  width: 16px;
+  height: 16px;
+}
+
+@media (max-width: 980px) {
+  .analyst-studio-layout {
+    grid-template-columns: 190px minmax(0, 1fr);
+  }
+
+  .analyst-studio-layout .security-studio-config {
+    grid-column: 1 / -1;
+    border-top: 1px solid rgba(167, 139, 250, 0.14);
+    border-left: 0;
+  }
+}
+
+@media (max-width: 680px) {
+  .analyst-studio-layout {
+    display: block;
+  }
+
+  .analyst-studio-canvas {
+    padding: 16px;
+  }
+
+  .analyst-preview-card {
+    min-height: 290px;
+    margin-top: 20px;
+    padding: 16px;
+  }
+
+  .analyst-bar-chart,
+  .analyst-line-chart {
+    gap: 9px;
+    height: 230px;
+  }
+
+  .analyst-donut-layout {
+    min-height: 260px;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .analyst-donut {
+    width: 165px;
+    height: 165px;
+    border-width: 26px;
+  }
 }
 
 .security-studio-config textarea,

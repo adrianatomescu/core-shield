@@ -577,6 +577,105 @@ const analystChartSeries = {
   ],
 };
 
+type AnalystChartPoint = {
+  label: string;
+  value: number;
+};
+
+type AnalystChart = {
+  id: number;
+  title: string;
+  dataset: keyof typeof analystChartSeries;
+  type: "bar" | "line" | "donut";
+};
+
+type AnalystChartSeries = Record<keyof typeof analystChartSeries, AnalystChartPoint[]>;
+
+type AnalystDashboardData = {
+  metrics: SecurityEngineerMetric[];
+  modules: SecurityEngineerModule[];
+  priorities: SecurityEngineerPriority[];
+  notifications: SecurityEngineerNotification[];
+  tasks: TaskItem[];
+  chartSeries: AnalystChartSeries;
+  reportCharts: AnalystChart[];
+};
+
+const analystModules: SecurityEngineerModule[] = [
+  {
+    id: "monitoring",
+    title: "SIEM Monitoring",
+    description: "Follow network, endpoint, identity and mailbox signals from one triage surface.",
+    action: "Inspect signal stream",
+    count: "46",
+    rows: [
+      { name: "Edge firewall", detail: "VPN brute-force cluster", value: "9 alerts" },
+      { name: "Endpoint detection", detail: "Unsigned PowerShell activity", value: "6 alerts" },
+      { name: "Identity provider", detail: "MFA fatigue pattern", value: "12 alerts" },
+    ],
+  },
+  {
+    id: "investigations",
+    title: "Incident Response",
+    description: "Investigate, isolate and remediate suspicious activity while preserving evidence.",
+    action: "Open investigation desk",
+    count: "7",
+    rows: [
+      { name: "VPN credential attack", detail: "Incident #801 · critical", value: "in progress" },
+      { name: "Finance mailbox forwarding", detail: "Incident #802 · phishing", value: "triage" },
+      { name: "Endpoint script execution", detail: "Incident #803 · medium", value: "review" },
+    ],
+  },
+  {
+    id: "vulnerabilities",
+    title: "Vulnerability Scans",
+    description: "Review exposed services, weak configurations and remediation progress.",
+    action: "Open scan findings",
+    count: "11",
+    rows: [
+      { name: "External perimeter", detail: "Critical exposure validation", value: "2 findings" },
+      { name: "Endpoint fleet", detail: "Patch verification", value: "5 findings" },
+      { name: "Cloud services", detail: "Configuration drift", value: "4 findings" },
+    ],
+  },
+  {
+    id: "analytics",
+    title: "Analytics & Reports",
+    description: "Turn SIEM data into focused visual investigations and evidence-ready reports.",
+    action: "Open analytics studio",
+    count: "4",
+    rows: [
+      { name: "Incident severity", detail: "Cases grouped by operational risk", value: "27 cases" },
+      { name: "Alert source mix", detail: "Signals grouped by detection source", value: "39 alerts" },
+      { name: "Execution health", detail: "Response workflow outcomes", value: "25 runs" },
+    ],
+  },
+  {
+    id: "recovery",
+    title: "Recovery & Training",
+    description: "Track recovery drills, policy readiness and awareness activities after incidents.",
+    action: "Review readiness plan",
+    count: "3",
+    rows: [
+      { name: "Identity restore drill", detail: "Backup service validation", value: "scheduled" },
+      { name: "Phishing awareness", detail: "Finance team simulation", value: "82%" },
+      { name: "Incident handbook", detail: "Quarterly recovery review", value: "ready" },
+    ],
+  },
+];
+
+const analystNotifications: SecurityEngineerNotification[] = [
+  { id: 101, title: "Critical VPN cluster assigned", detail: "Nine correlated firewall alerts are ready for analyst triage.", time: "6 min ago", tone: "critical" },
+  { id: 102, title: "Mailbox evidence enriched", detail: "Finance forwarding-rule evidence is available for review.", time: "19 min ago", tone: "review" },
+  { id: 103, title: "Recovery drill reminder", detail: "Backup identity validation starts tomorrow at 10:00.", time: "1h ago", tone: "testing" },
+];
+
+const analystPriorities: SecurityEngineerPriority[] = [
+  { title: "Contain VPN credential attack", detail: "Correlate source IPs and confirm firewall isolation for incident #801.", status: "critical" },
+  { title: "Review finance mailbox evidence", detail: "Validate forwarding-rule history before escalating the phishing case.", status: "review" },
+  { title: "Build daily SOC snapshot", detail: "Summarize severity, source mix and workflow health for the shift report.", status: "testing" },
+];
+
 const auditorReportTypes: Array<{
   id: AuditorReportType;
   title: string;
@@ -2220,7 +2319,21 @@ function ManagerDashboard({ mailOpen }: { mailOpen: boolean }) {
   );
 }
 
-function AnalystDashboard({ mailOpen }: { mailOpen: boolean }) {
+function AnalystDashboard({
+  mailOpen,
+  user,
+  onLogout,
+  legacy = false,
+}: {
+  mailOpen: boolean;
+  user: StoredUser;
+  onLogout: () => void;
+  legacy?: boolean;
+}) {
+  if (!legacy) {
+    return <AnalystRoleWorkspace user={user} onLogout={onLogout} />;
+  }
+
   const analystTasks = tasksByRole.ANALYST;
 
   return (
@@ -2595,6 +2708,29 @@ function WorkspaceIcon({ name }: { name: string }) {
         <path d="M4 5h16v14H4z" />
       </>
     ),
+    investigations: (
+      <>
+        <circle cx="11" cy="11" r="6" />
+        <path d="m16 16 4 4" />
+        <path d="M8 11h6" />
+        <path d="M11 8v6" />
+      </>
+    ),
+    analytics: (
+      <>
+        <path d="M4 19h16" />
+        <path d="M6 16v-5" />
+        <path d="M12 16V5" />
+        <path d="M18 16V8" />
+      </>
+    ),
+    recovery: (
+      <>
+        <path d="M4 12a8 8 0 1 0 3-6.2" />
+        <path d="M4 4v5h5" />
+        <path d="M12 8v4l3 2" />
+      </>
+    ),
     compliance: (
       <>
         <path d="M12 3 5 6v5c0 4.6 3 8.1 7 10 4-1.9 7-5.4 7-10V6z" />
@@ -2662,6 +2798,10 @@ function WorkspaceIcon({ name }: { name: string }) {
 }
 
 function RoleWorkspaceShell({
+  roleLabel,
+  boardTitle,
+  personaDetail,
+  chatLabel,
   modules,
   activeModuleId,
   onSelectModule,
@@ -2678,6 +2818,10 @@ function RoleWorkspaceShell({
   children,
   drawer,
 }: {
+  roleLabel: string;
+  boardTitle: string;
+  personaDetail: string;
+  chatLabel: string;
   modules: RoleWorkspaceModule[];
   activeModuleId: string;
   onSelectModule: (moduleId: string) => void;
@@ -2701,11 +2845,11 @@ function RoleWorkspaceShell({
           <div className="role-workspace-mark">CS</div>
           <div>
             <strong>CoreShield</strong>
-            <span>Security Engineer</span>
+            <span>{roleLabel}</span>
           </div>
         </div>
 
-        <nav className="role-workspace-nav" aria-label="Security engineer modules">
+        <nav className="role-workspace-nav" aria-label={`${roleLabel} modules`}>
           {modules.map((module) => (
             <button
               key={module.id}
@@ -2723,15 +2867,15 @@ function RoleWorkspaceShell({
         <div className="role-workspace-persona">
           <span>Workspace persona</span>
           <strong>{workspacePersona}</strong>
-          <small>automation + infrastructure</small>
+          <small>{personaDetail}</small>
         </div>
       </aside>
 
       <main className="role-workspace-main">
         <header className="role-workspace-topbar">
           <div>
-            <span>Security Engineer</span>
-            <strong>Engineering command board</strong>
+            <span>{roleLabel}</span>
+            <strong>{boardTitle}</strong>
           </div>
 
           <label className="role-workspace-search">
@@ -2745,7 +2889,7 @@ function RoleWorkspaceShell({
           </label>
 
           <div className="role-workspace-actions">
-            <button type="button" className="role-workspace-icon-button" onClick={() => onOpenDrawer("chat")} aria-label="Open engineering chat">
+            <button type="button" className="role-workspace-icon-button" onClick={() => onOpenDrawer("chat")} aria-label={`Open ${chatLabel.toLowerCase()}`}>
               <WorkspaceIcon name="chat" />
               {unreadChatCount ? <small>{unreadChatCount}</small> : null}
             </button>
@@ -2769,7 +2913,7 @@ function RoleWorkspaceShell({
       <aside className="role-workspace-drawer" aria-hidden={!drawerMode}>
         <div className="role-workspace-drawer-head">
           <div>
-            <span>{drawerMode === "chat" ? "Engineering chat" : "Operations center"}</span>
+            <span>{drawerMode === "chat" ? chatLabel : "Operations center"}</span>
             <strong>{drawerMode === "chat" ? "Team conversations" : "Notifications & tasks"}</strong>
           </div>
           <button type="button" className="role-workspace-icon-button" onClick={onCloseDrawer} aria-label="Close side panel">
@@ -3338,6 +3482,525 @@ function SecurityModuleWorkspace({
   );
 }
 
+function AnalystChartPreview({
+  points,
+  type,
+}: {
+  points: AnalystChartPoint[];
+  type: AnalystChart["type"];
+}) {
+  const maxValue = Math.max(...points.map((point) => point.value), 1);
+  const total = points.reduce((sum, point) => sum + point.value, 0);
+
+  if (type === "donut") {
+    return (
+      <div className="analyst-donut-layout">
+        <div className="analyst-donut">
+          <strong>{total}</strong>
+          <span>events</span>
+        </div>
+        <div className="analyst-chart-legend">
+          {points.map((point) => (
+            <span key={point.label}><i />{point.label} · {point.value}</span>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (type === "line") {
+    return (
+      <div className="analyst-line-chart">
+        {points.map((point) => (
+          <div key={point.label} className="analyst-line-point">
+            <span style={{ bottom: `${Math.max(8, point.value / maxValue * 82)}%` }} />
+            <small>{point.label}</small>
+            <strong>{point.value}</strong>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="analyst-bar-chart">
+      {points.map((point) => (
+        <div key={point.label}>
+          <strong>{point.value}</strong>
+          <span style={{ height: `${Math.max(12, point.value / maxValue * 100)}%` }} />
+          <small>{point.label}</small>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AnalystAnalyticsStudio({
+  chartSeries,
+  initialReportCharts,
+  onAddChart,
+  onDeleteChart,
+  onClose,
+}: {
+  chartSeries: AnalystChartSeries;
+  initialReportCharts: AnalystChart[];
+  onAddChart: (chart: Omit<AnalystChart, "id">) => Promise<AnalystChart>;
+  onDeleteChart: (chartId: number) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [dataset, setDataset] = useState<keyof typeof analystChartSeries>("incidentSeverity");
+  const [chartType, setChartType] = useState<AnalystChart["type"]>("bar");
+  const [chartTitle, setChartTitle] = useState("Incident severity overview");
+  const [reportCharts, setReportCharts] = useState<AnalystChart[]>(initialReportCharts);
+  const [message, setMessage] = useState("");
+  const datasetLabels: Record<keyof typeof analystChartSeries, string> = {
+    incidentSeverity: "Incidents by severity",
+    incidentStatus: "Incidents by status",
+    alertSources: "Alert source mix",
+    executionHealth: "Execution health",
+  };
+
+  const addChart = async () => {
+    const title = chartTitle.trim();
+
+    if (!title) {
+      setMessage("Add a title before saving this visualization.");
+      return;
+    }
+
+    try {
+      const chart = await onAddChart({ title, dataset, type: chartType });
+      setReportCharts((current) => [...current, chart]);
+      setMessage(`${title} added to the PostgreSQL-backed daily SOC report.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not add visualization.");
+    }
+  };
+
+  const removeChart = async (chartId: number) => {
+    try {
+      await onDeleteChart(chartId);
+      setReportCharts((current) => current.filter((entry) => entry.id !== chartId));
+      setMessage("Visualization removed from the daily SOC report.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not remove visualization.");
+    }
+  };
+
+  const exportReport = () => {
+    const blob = new Blob([JSON.stringify({ name: "Daily SOC snapshot", charts: reportCharts }, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "analyst-soc-report.json";
+    anchor.click();
+    URL.revokeObjectURL(url);
+    setMessage("Report exported as analyst-soc-report.json.");
+  };
+
+  return (
+    <section className="security-studio analyst-studio">
+      <header className="security-studio-topbar">
+        <div>
+          <button type="button" className="security-demo-button" onClick={onClose}>Back to overview</button>
+          <span>Analytics studio</span>
+          <h1>SIEM report builder</h1>
+        </div>
+        <button type="button" className="security-primary-button" onClick={exportReport}>Export report</button>
+      </header>
+
+      {message ? <div className="security-studio-message">{message}</div> : null}
+
+      <div className="analyst-studio-layout">
+        <aside className="security-studio-sidebar">
+          <span className="security-command-kicker">Dataset catalog</span>
+          <div className="security-studio-catalog">
+            {(Object.keys(chartSeries) as Array<keyof typeof analystChartSeries>).map((entry) => (
+              <button
+                key={entry}
+                type="button"
+                className={classNames("security-studio-playbook", dataset === entry && "active")}
+                onClick={() => {
+                  setDataset(entry);
+                  setChartTitle(datasetLabels[entry]);
+                }}
+              >
+                <strong>{datasetLabels[entry]}</strong>
+                <span>{chartSeries[entry].length} grouped values</span>
+              </button>
+            ))}
+          </div>
+        </aside>
+
+        <main className="analyst-studio-canvas">
+          <div className="security-studio-canvas-head">
+            <div>
+              <span>Live visualization preview</span>
+              <strong>{chartTitle || datasetLabels[dataset]}</strong>
+            </div>
+            <small>{chartSeries[dataset].reduce((sum, point) => sum + point.value, 0)} correlated events</small>
+          </div>
+          <div className="analyst-preview-card">
+            <AnalystChartPreview points={chartSeries[dataset]} type={chartType} />
+          </div>
+        </main>
+
+        <aside className="security-studio-config">
+          <span className="security-command-kicker">Visualization settings</span>
+          <h2>Build chart</h2>
+          <label>
+            <span>Chart title</span>
+            <input value={chartTitle} onChange={(event) => setChartTitle(event.target.value)} />
+          </label>
+          <label>
+            <span>Chart type</span>
+            <select value={chartType} onChange={(event) => setChartType(event.target.value as AnalystChart["type"])}>
+              <option value="bar">Bar chart</option>
+              <option value="line">Line chart</option>
+              <option value="donut">Donut summary</option>
+            </select>
+          </label>
+          <button type="button" className="security-primary-button" onClick={addChart}>Add to report</button>
+
+          <div className="analyst-report-charts">
+            <span className="security-command-kicker">Daily SOC snapshot</span>
+            {reportCharts.map((chart) => (
+              <article key={chart.id}>
+                <div>
+                  <strong>{chart.title}</strong>
+                  <small>{chart.type} · {datasetLabels[chart.dataset]}</small>
+                </div>
+                <button type="button" onClick={() => removeChart(chart.id)} aria-label={`Remove ${chart.title}`}>
+                  <WorkspaceIcon name="close" />
+                </button>
+              </article>
+            ))}
+          </div>
+        </aside>
+      </div>
+    </section>
+  );
+}
+
+function AnalystRoleWorkspace({
+  user,
+  onLogout,
+}: {
+  user: StoredUser;
+  onLogout: () => void;
+}) {
+  const [activeModuleId, setActiveModuleId] = useState(analystModules[0].id);
+  const [searchValue, setSearchValue] = useState("");
+  const [drawerMode, setDrawerMode] = useState<"chat" | "notifications" | null>(null);
+  const [studioOpen, setStudioOpen] = useState(false);
+  const [workspaceMode, setWorkspaceMode] = useState<"module" | "evidence" | null>(null);
+  const [dashboardData, setDashboardData] = useState<AnalystDashboardData>({
+    metrics: analystMetrics,
+    modules: analystModules,
+    priorities: analystPriorities,
+    notifications: analystNotifications,
+    tasks: tasksByRole.ANALYST,
+    chartSeries: analystChartSeries,
+    reportCharts: [{ id: 1, title: "Incident severity overview", dataset: "incidentSeverity", type: "bar" }],
+  });
+  const [isDashboardLoading, setIsDashboardLoading] = useState(true);
+  const [dashboardError, setDashboardError] = useState("");
+  const [chatDirectory, setChatDirectory] = useState<ChatDirectory>({ users: [], groups: [] });
+  const [chatDirectoryError, setChatDirectoryError] = useState("");
+  const [isChatDirectoryLoading, setIsChatDirectoryLoading] = useState(true);
+  const modules = dashboardData.modules.length ? dashboardData.modules : analystModules;
+  const activeModule = modules.find((module) => module.id === activeModuleId) ?? modules[0];
+  const filteredRows = activeModule.rows.filter((row) =>
+    `${row.name} ${row.detail}`.toLowerCase().includes(searchValue.trim().toLowerCase())
+  );
+  const chatPersona = user.role === "ANALYST"
+    ? user.email
+    : chatDirectory.users.find((entry) => entry.role === "ANALYST")?.email ?? "mihai.ionescu@local.dev";
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function loadChatDirectory() {
+      try {
+        const response = await fetch("http://localhost:8000/users/chat-directory");
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.detail || "Could not load chat teammates.");
+        }
+
+        if (!isCancelled) {
+          setChatDirectory({ users: data.users ?? [], groups: data.groups ?? [] });
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          setChatDirectoryError(error instanceof Error ? error.message : "Could not load chat teammates.");
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsChatDirectoryLoading(false);
+        }
+      }
+    }
+
+    loadChatDirectory();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function loadDashboard() {
+      setIsDashboardLoading(true);
+      setDashboardError("");
+
+      try {
+        const response = await fetch("http://localhost:8000/analyst/dashboard");
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.detail || "Could not load Analyst data.");
+        }
+
+        if (!isCancelled) {
+          setDashboardData(data);
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          setDashboardError(error instanceof Error ? error.message : "Could not load Analyst data.");
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsDashboardLoading(false);
+        }
+      }
+    }
+
+    loadDashboard();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  const dismissNotification = async (notificationId: number) => {
+    try {
+      const response = await fetch(`http://localhost:8000/analyst/notifications/${notificationId}/dismiss`, { method: "PUT" });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Could not dismiss notification.");
+      }
+
+      setDashboardData((current) => ({
+        ...current,
+        notifications: current.notifications.filter((entry) => entry.id !== notificationId),
+      }));
+    } catch (error) {
+      setDashboardError(error instanceof Error ? error.message : "Could not dismiss notification.");
+    }
+  };
+
+  const advanceTask = async (taskId: number) => {
+    const task = dashboardData.tasks.find((entry) => entry.id === taskId);
+
+    if (!task) {
+      return;
+    }
+
+    const status = task.status === "queued" ? "in_progress" : task.status === "in_progress" ? "done" : "queued";
+
+    try {
+      const response = await fetch(`http://localhost:8000/analyst/tasks/${taskId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Could not update task.");
+      }
+
+      setDashboardData((current) => ({
+        ...current,
+        tasks: current.tasks.map((entry) => entry.id === taskId ? { ...entry, status } : entry),
+      }));
+    } catch (error) {
+      setDashboardError(error instanceof Error ? error.message : "Could not update task.");
+    }
+  };
+
+  const addReportChart = async (chart: Omit<AnalystChart, "id">) => {
+    const response = await fetch("http://localhost:8000/analyst/report-charts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(chart),
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.detail || "Could not save visualization.");
+    }
+
+    setDashboardData((current) => ({ ...current, reportCharts: [...current.reportCharts, data] }));
+    return data;
+  };
+
+  const deleteReportChart = async (chartId: number) => {
+    const response = await fetch(`http://localhost:8000/analyst/report-charts/${chartId}`, { method: "DELETE" });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.detail || "Could not remove visualization.");
+    }
+
+    setDashboardData((current) => ({
+      ...current,
+      reportCharts: current.reportCharts.filter((entry) => entry.id !== chartId),
+    }));
+  };
+
+  if (studioOpen) {
+    return (
+      <AnalystAnalyticsStudio
+        chartSeries={dashboardData.chartSeries}
+        initialReportCharts={dashboardData.reportCharts}
+        onAddChart={addReportChart}
+        onDeleteChart={deleteReportChart}
+        onClose={() => setStudioOpen(false)}
+      />
+    );
+  }
+
+  if (workspaceMode) {
+    return <SecurityModuleWorkspace module={activeModule} mode={workspaceMode} onClose={() => setWorkspaceMode(null)} />;
+  }
+
+  return (
+    <RoleWorkspaceShell
+      roleLabel="Cybersecurity Analyst"
+      boardTitle="SOC investigation board"
+      personaDetail="triage + analytics"
+      chatLabel="Analyst chat"
+      modules={modules}
+      activeModuleId={activeModule.id}
+      onSelectModule={(moduleId) => {
+        setActiveModuleId(moduleId);
+        setSearchValue("");
+        setWorkspaceMode(null);
+      }}
+      searchValue={searchValue}
+      onSearchChange={setSearchValue}
+      unreadChatCount={0}
+      notificationCount={dashboardData.notifications.length}
+      drawerMode={drawerMode}
+      onOpenDrawer={setDrawerMode}
+      onCloseDrawer={() => setDrawerMode(null)}
+      onLogout={onLogout}
+      signedInUser={user}
+      workspacePersona={chatPersona.split("@")[0]}
+      drawer={
+        <>
+          <div hidden={drawerMode !== "chat"}>
+            <SecurityEngineerChatDrawer
+              directory={{
+                users: chatDirectory.users,
+                groups: chatDirectory.groups.filter((group) => group.role === null || group.role === "ANALYST"),
+              }}
+              currentUserEmail={chatPersona}
+              isLoading={isChatDirectoryLoading}
+              errorMessage={chatDirectoryError}
+            />
+          </div>
+          <div hidden={drawerMode !== "notifications"}>
+            <SecurityEngineerNotificationsDrawer
+              notifications={dashboardData.notifications}
+              onDismissNotification={dismissNotification}
+              tasks={dashboardData.tasks}
+              onAdvanceTask={advanceTask}
+            />
+          </div>
+        </>
+      }
+    >
+      <section className="security-command-content">
+        <div className="security-command-intro">
+          <div>
+            <span className="security-command-kicker">SOC analysis workspace</span>
+            <h1>Detect patterns.<br />Resolve incidents.</h1>
+          </div>
+          <p>Monitor SIEM signals, investigate suspicious activity and shape clear reports from the evidence that matters.</p>
+        </div>
+        {isDashboardLoading ? <div className="security-studio-message">Loading SOC data from PostgreSQL...</div> : null}
+        {dashboardError ? <div className="security-chat-error">{dashboardError}</div> : null}
+
+        <div className="security-command-metrics">
+          {dashboardData.metrics.map((metric) => (
+            <article key={metric.label} className="security-glass-card security-metric-card">
+              <span>{metric.label}</span>
+              <strong>{metric.value}</strong>
+              <p>{metric.note}</p>
+            </article>
+          ))}
+        </div>
+
+        <div className="security-command-grid">
+          <article className="security-glass-card security-module-panel">
+            <div className="security-module-heading">
+              <span className="role-workspace-nav-icon"><WorkspaceIcon name={activeModule.id} /></span>
+              <div>
+                <span>Selected module</span>
+                <h2>{activeModule.title}</h2>
+              </div>
+              <strong>{activeModule.count}</strong>
+            </div>
+            <p>{activeModule.description}</p>
+            <div className="security-module-results">
+              {filteredRows.length ? filteredRows.map((row) => (
+                <div key={row.name} className="security-module-row">
+                  <div><strong>{row.name}</strong><span>{row.detail}</span></div>
+                  <em>{row.value}</em>
+                </div>
+              )) : <div className="security-empty-state">No results found in {activeModule.title}.</div>}
+            </div>
+            <div className="security-module-footer">
+              <button
+                type="button"
+                className="security-primary-button"
+                onClick={() => activeModule.id === "analytics" ? setStudioOpen(true) : setWorkspaceMode("module")}
+              >
+                {activeModule.action}
+              </button>
+              <button type="button" className="security-demo-button" onClick={() => setWorkspaceMode("evidence")}>
+                View evidence
+              </button>
+            </div>
+          </article>
+
+          <aside className="security-command-priorities">
+            <div className="security-section-title">
+              <div><span>Current focus</span><h2>Analyst priorities</h2></div>
+              <strong>{String(dashboardData.priorities.length).padStart(2, "0")}</strong>
+            </div>
+            {dashboardData.priorities.map((priority) => (
+              <article key={priority.title} className="security-glass-card security-priority-card">
+                <span className={`security-priority-dot ${priority.status}`} />
+                <div><strong>{priority.title}</strong><p>{priority.detail}</p></div>
+              </article>
+            ))}
+          </aside>
+        </div>
+      </section>
+    </RoleWorkspaceShell>
+  );
+}
+
 function SecurityEngineerDashboard({
   user,
   onLogout,
@@ -3519,6 +4182,10 @@ function SecurityEngineerDashboard({
 
   return (
     <RoleWorkspaceShell
+      roleLabel="Security Engineer"
+      boardTitle="Engineering command board"
+      personaDetail="automation + infrastructure"
+      chatLabel="Engineering chat"
       modules={modules}
       activeModuleId={activeModuleId}
       onSelectModule={selectModule}
@@ -4014,11 +4681,11 @@ export default function Dashboard() {
     activeRole === "ADMIN" ? 0 : getNonAdminThreads(activeRole).filter((thread) => thread.unread).length;
 
   return (
-    <section className={classNames("dashboard-shell", activeRole === "SECURITY_ENGINEER" && "dashboard-shell-fullscreen")}>
+    <section className={classNames("dashboard-shell", (activeRole === "SECURITY_ENGINEER" || activeRole === "ANALYST") && "dashboard-shell-fullscreen")}>
       <div className="dashboard-backdrop" />
 
       <div className="dashboard-frame">
-        {activeRole !== "SECURITY_ENGINEER" ? (
+        {activeRole !== "SECURITY_ENGINEER" && activeRole !== "ANALYST" ? (
           <RoleHeader
             user={user}
             title={roleMeta[activeRole].title}
@@ -4058,7 +4725,7 @@ export default function Dashboard() {
 
         {activeRole === "ADMIN" ? <AdminDashboard users={dbUsers} /> : null}
         {activeRole === "MANAGER" ? <ManagerDashboard mailOpen={mailOpen} /> : null}
-        {activeRole === "ANALYST" ? <AnalystDashboard mailOpen={mailOpen} /> : null}
+        {activeRole === "ANALYST" ? <AnalystDashboard user={user} onLogout={handleLogout} mailOpen={mailOpen} /> : null}
         {activeRole === "SECURITY_ENGINEER" ? (
           <SecurityEngineerDashboard
             user={user}
