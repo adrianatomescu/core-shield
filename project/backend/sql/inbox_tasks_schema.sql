@@ -3,15 +3,29 @@
 -- CoreShield collaboration layer
 -- =========================
 
-CREATE TYPE task_priority AS ENUM ('low', 'medium', 'high');
-CREATE TYPE task_status AS ENUM ('queued', 'in_progress', 'done', 'cancelled');
-CREATE TYPE mailbox_folder AS ENUM ('inbox', 'sent', 'archive');
+DO $$ BEGIN
+    CREATE TYPE task_priority AS ENUM ('low', 'medium', 'high');
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE task_status AS ENUM ('queued', 'in_progress', 'done', 'cancelled');
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE mailbox_folder AS ENUM ('inbox', 'sent', 'archive');
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
 -- =========================
 -- TASKS
 -- =========================
 
-CREATE TABLE tasks (
+CREATE TABLE IF NOT EXISTS tasks (
     id SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     description TEXT,
@@ -49,15 +63,15 @@ CREATE TABLE tasks (
         ON DELETE SET NULL
 );
 
-CREATE INDEX idx_tasks_assigned_to ON tasks(assigned_to);
-CREATE INDEX idx_tasks_status ON tasks(status);
-CREATE INDEX idx_tasks_incident_id ON tasks(incident_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_assigned_to ON tasks(assigned_to);
+CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+CREATE INDEX IF NOT EXISTS idx_tasks_incident_id ON tasks(incident_id);
 
 -- =========================
 -- MAIL THREADS
 -- =========================
 
-CREATE TABLE mail_threads (
+CREATE TABLE IF NOT EXISTS mail_threads (
     id SERIAL PRIMARY KEY,
     subject VARCHAR(255) NOT NULL,
     created_by INT,
@@ -86,7 +100,7 @@ CREATE TABLE mail_threads (
 -- MAIL PARTICIPANTS
 -- =========================
 
-CREATE TABLE mail_thread_participants (
+CREATE TABLE IF NOT EXISTS mail_thread_participants (
     thread_id INT NOT NULL,
     user_id INT NOT NULL,
     folder mailbox_folder DEFAULT 'inbox',
@@ -100,13 +114,13 @@ CREATE TABLE mail_thread_participants (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_mail_participants_user_id ON mail_thread_participants(user_id);
+CREATE INDEX IF NOT EXISTS idx_mail_participants_user_id ON mail_thread_participants(user_id);
 
 -- =========================
 -- MAIL MESSAGES
 -- =========================
 
-CREATE TABLE mail_messages (
+CREATE TABLE IF NOT EXISTS mail_messages (
     id SERIAL PRIMARY KEY,
     thread_id INT NOT NULL,
     sender_id INT,
@@ -117,7 +131,7 @@ CREATE TABLE mail_messages (
     FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
-CREATE INDEX idx_mail_messages_thread_id ON mail_messages(thread_id);
+CREATE INDEX IF NOT EXISTS idx_mail_messages_thread_id ON mail_messages(thread_id);
 
 -- =========================
 -- OPTIONAL TRIGGER
@@ -132,11 +146,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_tasks_updated_at ON tasks;
 CREATE TRIGGER trg_tasks_updated_at
 BEFORE UPDATE ON tasks
 FOR EACH ROW
 EXECUTE FUNCTION set_updated_at_timestamp();
 
+DROP TRIGGER IF EXISTS trg_mail_threads_updated_at ON mail_threads;
 CREATE TRIGGER trg_mail_threads_updated_at
 BEFORE UPDATE ON mail_threads
 FOR EACH ROW

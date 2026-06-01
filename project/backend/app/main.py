@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.routers import auth, users
+from app.routers import auth, security_engineer, users
 
 app = FastAPI(title="CoreShield API")
 
@@ -43,3 +43,4 @@ def health_check():
 
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(security_engineer.router)

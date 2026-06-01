@@ -12,7 +12,12 @@ class Settings:
     postgres_db = os.getenv("POSTGRES_DB", "sentinelflow")
     postgres_user = os.getenv("POSTGRES_USER", "admin")
     postgres_password = os.getenv("POSTGRES_PASSWORD", "admin")
-    cors_origins = ["http://localhost:5173"]
+    cors_origins = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+    ]
 
 
 settings = Settings()

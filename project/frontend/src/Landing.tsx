@@ -3,8 +3,6 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import DarkVeil from "./DarkVeil"; 
 
-type Language = "en" | "ro";
-
 function useTypewriter(text: string) {
   const [displayedText, setDisplayedText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -56,28 +54,15 @@ function useTypewriter(text: string) {
   return displayedText;
 }
 
-export default function Landing({
-  language,
-}: {
-  language: Language;
-}) {
+export default function Landing() {
   const navigate = useNavigate();
   const copy = {
-    en: {
-      badge: "Active Threat Monitoring",
-      product: "Security Automation Engine",
-      subtitle:
-        "Intelligent Monitoring. Orchestrating Response. Protecting Critical Operations.",
-      cta: "Get Started",
-    },
-    ro: {
-      badge: "Monitorizare Activă a Amenințărilor",
-      product: "Motor de Automatizare pentru Securitate",
-      subtitle:
-        "Monitorizare inteligentă. Orchestrarea răspunsului. Protejarea operațiunilor critice.",
-      cta: "Începe",
-    },
-  }[language];
+    badge: "Active Threat Monitoring",
+    product: "Security Automation Engine",
+    subtitle:
+      "Intelligent Monitoring. Orchestrating Response. Protecting Critical Operations.",
+    cta: "Get Started",
+  };
   const subtitleText = copy.subtitle;
   
   const displayedText = useTypewriter(subtitleText);

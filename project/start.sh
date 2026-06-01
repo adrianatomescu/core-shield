@@ -6,7 +6,8 @@ PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 FRONTEND_DIR="$PROJECT_DIR/frontend"
 PID_FILE="$PROJECT_DIR/.frontend.pid"
 FRONTEND_LOG="$PROJECT_DIR/frontend-dev.log"
-FRONTEND_URL="http://localhost:5173"
+FRONTEND_URL="http://127.0.0.1:5173"
+BACKEND_URL="http://localhost:8000"
 
 require_command() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -17,7 +18,7 @@ require_command() {
 
 wait_for_url() {
   local url="$1"
-  local retries="${2:-30}"
+  local retries="${2:-90}"
 
   for _ in $(seq 1 "$retries"); do
     if curl -fsS "$url" >/dev/null 2>&1; then
@@ -38,6 +39,13 @@ echo "Starting backend services with Docker..."
 
 echo "Rebuilding and starting the backend..."
 (cd "$PROJECT_DIR" && docker compose up -d --build backend)
+
+echo "Waiting for the backend to respond at $BACKEND_URL/health..."
+if ! wait_for_url "$BACKEND_URL/health"; then
+  echo "The backend did not start correctly. Check the logs with:"
+  echo "  cd $PROJECT_DIR && docker compose logs backend"
+  exit 1
+fi
 
 if [ ! -d "$FRONTEND_DIR/node_modules" ]; then
   echo "Installing frontend dependencies..."
@@ -81,4 +89,4 @@ fi
 
 echo "Application started."
 echo "Frontend: $FRONTEND_URL"
-echo "Backend API: http://localhost:8000"
+echo "Backend API: $BACKEND_URL"

@@ -13,7 +13,7 @@ const roleOptions: Array<{ value: Role; label: string }> = [
   { value: "AUDITOR", label: "Auditor" },
 ];
 
-export default function AdminCreateUser({ language }: { language: "en" | "ro" }) {
+export default function AdminCreateUser() {
   const [adminEmail, setAdminEmail] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
   const [showAdminPassword, setShowAdminPassword] = useState(false);
@@ -27,53 +27,28 @@ export default function AdminCreateUser({ language }: { language: "en" | "ro" })
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const copy = {
-    en: {
-      title: "Provision New Account",
-      subtitle: "First verify an administrator account, then register the new operator.",
-      stepOne: "1. Admin Verification",
-      stepTwo: "2. Create Account",
-      adminEmail: "Administrator Email",
-      adminPassword: "Administrator Password",
-      verify: "Verify Administrator",
-      verifying: "Verifying...",
-      verified: "Administrator verified. You can now create a new account.",
-      roleRequired: "Please select a role for the new account.",
-      created: "Account created for {email}. Password was stored encrypted in the database.",
-      newUserEmail: "New User Email",
-      newUserPassword: "New User Password",
-      role: "Role",
-      selectRole: "Select a role",
-      changeAdmin: "Change Admin",
-      create: "Create Account",
-      creating: "Creating...",
-      verifiedBanner: "Administrator `{email}` verified successfully.",
-      goToLogin: "Go To Login",
-      back: "← Return to Login",
-    },
-    ro: {
-      title: "Creare Cont Nou",
-      subtitle: "Mai întâi verifică un cont de administrator, apoi înregistrează noul operator.",
-      stepOne: "1. Verificare Admin",
-      stepTwo: "2. Creare Cont",
-      adminEmail: "Email Administrator",
-      adminPassword: "Parolă Administrator",
-      verify: "Verifică Administratorul",
-      verifying: "Se verifică...",
-      verified: "Administrator verificat. Acum poți crea un cont nou.",
-      roleRequired: "Te rog selectează un rol pentru noul cont.",
-      created: "Cont creat pentru {email}. Parola a fost stocată criptat în baza de date.",
-      newUserEmail: "Email Utilizator Nou",
-      newUserPassword: "Parolă Utilizator Nou",
-      role: "Rol",
-      selectRole: "Selectează un rol",
-      changeAdmin: "Schimbă Adminul",
-      create: "Creează Cont",
-      creating: "Se creează...",
-      verifiedBanner: "Administratorul `{email}` a fost verificat cu succes.",
-      goToLogin: "Mergi la Login",
-      back: "← Înapoi la Login",
-    },
-  }[language];
+    title: "Provision New Account",
+    subtitle: "First verify an administrator account, then register the new operator.",
+    stepOne: "1. Admin Verification",
+    stepTwo: "2. Create Account",
+    adminEmail: "Administrator Email",
+    adminPassword: "Administrator Password",
+    verify: "Verify Administrator",
+    verifying: "Verifying...",
+    verified: "Administrator verified. You can now create a new account.",
+    roleRequired: "Please select a role for the new account.",
+    created: "Account created for {email}. Password was stored encrypted in the database.",
+    newUserEmail: "New User Email",
+    newUserPassword: "New User Password",
+    role: "Role",
+    selectRole: "Select a role",
+    changeAdmin: "Change Admin",
+    create: "Create Account",
+    creating: "Creating...",
+    verifiedBanner: "Administrator `{email}` verified successfully.",
+    goToLogin: "Go To Login",
+    back: "← Return to Login",
+  };
 
   const handleAdminVerification = async (e: React.FormEvent) => {
     e.preventDefault();

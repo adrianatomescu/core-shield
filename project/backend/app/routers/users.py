@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException
 
 from app.schemas.user import AdminCreateUserRequest, CreateUserResponse, UsersListResponse
 from app.services.auth_service import create_user_with_admin_verification
-from app.services.user_service import get_all_users
+from app.services.user_service import get_all_users, get_chat_directory
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -29,3 +29,14 @@ def list_users():
         )
 
     return {"users": users}
+
+
+@router.get("/chat-directory")
+def chat_directory():
+    try:
+        return get_chat_directory()
+    except psycopg2.Error as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database error: {exc.pgerror or str(exc)}",
+        )

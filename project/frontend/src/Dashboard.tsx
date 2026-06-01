@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Dashboard.css";
 
@@ -76,29 +76,11 @@ type IncidentAlertLink = {
   alertIds: number[];
 };
 
-type AutomationRuleItem = {
-  id: number;
-  name: string;
-  condition: string;
-  action: string;
-  enabled: boolean;
-};
-
 type AuditorReportType =
   | "compliance"
   | "risk"
   | "policy"
   | "system_controls";
-
-type CommitItem = {
-  id: string;
-  title: string;
-  summary: string;
-  author: string;
-  timestamp: string;
-  scope: string;
-  status: "merged" | "review" | "draft";
-};
 
 type TaskItem = {
   id: number;
@@ -118,6 +100,81 @@ type MailThread = {
   unread: boolean;
   tag: string;
   preview: string;
+  messages: Array<{
+    sender: string;
+    timestamp: string;
+    body: string;
+  }>;
+};
+
+type ChatDirectoryUser = {
+  id: number;
+  email: string;
+  role: Exclude<Role, "ADMIN">;
+  enabled: boolean;
+};
+
+type ChatDirectoryGroup = {
+  id: string;
+  label: string;
+  role: Exclude<Role, "ADMIN"> | null;
+  participants: string[];
+};
+
+type SecurityEngineerMetric = {
+  label: string;
+  value: string;
+  note: string;
+};
+
+type SecurityEngineerModule = {
+  id: string;
+  title: string;
+  description: string;
+  action: string;
+  count: string;
+  rows: Array<{
+    name: string;
+    detail: string;
+    value: string;
+  }>;
+};
+
+type SecurityEngineerPriority = {
+  title: string;
+  detail: string;
+  status: string;
+};
+
+type SecurityEngineerNotification = {
+  id: number;
+  title: string;
+  detail: string;
+  time: string;
+  tone: string;
+};
+
+type SecurityEngineerDashboardData = {
+  metrics: SecurityEngineerMetric[];
+  modules: SecurityEngineerModule[];
+  priorities: SecurityEngineerPriority[];
+  notifications: SecurityEngineerNotification[];
+  playbooks: PlaybookItem[];
+  tasks: TaskItem[];
+};
+
+type ChatDirectory = {
+  users: ChatDirectoryUser[];
+  groups: ChatDirectoryGroup[];
+};
+
+type ChatConversation = {
+  id: string;
+  kind: "direct" | "group";
+  subject: string;
+  participants: string[];
+  preview: string;
+  unread: boolean;
   messages: Array<{
     sender: string;
     timestamp: string;
@@ -339,105 +396,115 @@ const incidentAlertLinks: IncidentAlertLink[] = [
   { incidentId: 803, alertIds: [2043] },
 ];
 
-const automationRules: AutomationRuleItem[] = [
-  {
-    id: 91,
-    name: "Critical VPN brute force escalation",
-    condition: 'alerts.severity = "critical" AND alerts.source = "SIEM / Edge Firewall"',
-    action: "Create incident and attach Block Malicious IP playbook",
-    enabled: true,
-  },
-  {
-    id: 92,
-    name: "Mailbox threat triage",
-    condition: 'alerts.source = "Mail Security" AND incidents.source = "rule_based"',
-    action: "Create finance incident and notify analyst mailbox",
-    enabled: true,
-  },
-  {
-    id: 93,
-    name: "Low-confidence script review",
-    condition: 'incidents.source = "ml_based" AND confidence_score < 0.70',
-    action: "Require analyst validation before containment",
-    enabled: true,
-  },
-];
-
-const securityEngineerCapabilities = [
-  {
-    title: "System design",
-    detail: "Secure cloud lanes, segmented environments and access boundaries for AWS, Azure and internal services.",
-  },
-  {
-    title: "Automation",
-    detail: "Build playbooks, rotate secrets, orchestrate firewall changes and automate repetitive response work.",
-  },
-  {
-    title: "Threat mitigation",
-    detail: "Monitor telemetry, inspect logs, respond to malware or DDoS patterns and harden exposed services fast.",
-  },
-  {
-    title: "Compliance",
-    detail: "Track evidence for GDPR, HIPAA or PCI DSS and keep every privileged workflow traceable.",
-  },
-  {
-    title: "Vulnerability management",
-    detail: "Test weak points, patch risky flows and keep remediation work visible inside one workspace.",
-  },
-];
-
-const securityEngineerMetrics = [
+const securityEngineerMetrics: SecurityEngineerMetric[] = [
   { label: "Automations live", value: "18", note: "12 fully active in production" },
   { label: "Secrets rotated", value: "42", note: "last 24 hours across cloud and VPN" },
   { label: "Coverage score", value: "91%", note: "design, monitoring and rollback checks" },
   { label: "Pending reviews", value: "3", note: "changes waiting for approval" },
 ];
 
-const codeWorkbenchFiles = [
-  "playbooks/block-malicious-ip.yml",
-  "scripts/archive_ioc.py",
-  "infra/firewall/deny_rule.tf",
-  "policies/iam/temporary-access.json",
-];
-
-const codeWorkbenchPreview = `def rotate_firewall_rule(ip_address: str, ttl_minutes: int = 90) -> dict:
-    payload = {
-        "indicator": ip_address,
-        "ttl_minutes": ttl_minutes,
-        "reason": "incident_containment",
-    }
-
-    response = palo_alto.create_temporary_block(payload)
-    audit.write("PLAYBOOK_UPDATE", f"Temporary deny rule added for {ip_address}")
-    return response`;
-
-const securityCommits: CommitItem[] = [
+const securityEngineerModules: SecurityEngineerModule[] = [
   {
-    id: "sec-142",
-    title: "Add rollback path for endpoint isolation failures",
-    summary: "Introduces guarded fallback logic so the host is re-checked before rollback is triggered.",
-    author: "anca.popescu",
-    timestamp: "2026-04-15 10:24",
-    scope: "containment",
-    status: "merged",
+    id: "architecture",
+    title: "Secure Architecture",
+    description: "Design cloud, network and application boundaries before risky paths reach production.",
+    action: "Review architecture",
+    count: "8",
+    rows: [
+      { name: "AWS landing zone", detail: "Segmentation review", value: "96%" },
+      { name: "VPN gateway", detail: "Hardening checklist", value: "84%" },
+      { name: "IAM policy set", detail: "Least privilege drift", value: "12" },
+    ],
   },
   {
-    id: "sec-143",
-    title: "Tune mail queue retry policy for SOC notifications",
-    summary: "Reduces timeout exposure for analyst notifications and keeps audit trace attached to each retry.",
-    author: "anca.popescu",
-    timestamp: "2026-04-15 09:58",
-    scope: "notifications",
+    id: "automation",
+    title: "Security Automation",
+    description: "Build response playbooks, rotate secrets and remove repetitive manual work.",
+    action: "Open automation studio",
+    count: "18",
+    rows: [
+      { name: "Block malicious IP", detail: "Palo Alto API", value: "76 runs" },
+      { name: "Contain endpoint", detail: "EDR isolation", value: "48 runs" },
+      { name: "Secret rotation", detail: "Cloud and VPN", value: "42 runs" },
+    ],
+  },
+  {
+    id: "monitoring",
+    title: "Threat Monitoring",
+    description: "Watch logs, firewall events, malware indicators and DDoS patterns in one queue.",
+    action: "Inspect threat signals",
+    count: "27",
+    rows: [
+      { name: "Firewall spikes", detail: "Edge SIEM", value: "9" },
+      { name: "EDR scripts", detail: "Unsigned PowerShell", value: "6" },
+      { name: "Identity signals", detail: "MFA fatigue", value: "12" },
+    ],
+  },
+  {
+    id: "compliance",
+    title: "Compliance & Audit",
+    description: "Keep GDPR, HIPAA and PCI controls mapped to engineering changes and audit trails.",
+    action: "View audit evidence",
+    count: "91%",
+    rows: [
+      { name: "GDPR", detail: "Access traceability", value: "94%" },
+      { name: "PCI DSS", detail: "Change evidence", value: "89%" },
+      { name: "HIPAA", detail: "Control coverage", value: "90%" },
+    ],
+  },
+  {
+    id: "vulnerabilities",
+    title: "Vulnerability Management",
+    description: "Prioritize weaknesses, penetration test findings and remediation work.",
+    action: "Open remediation queue",
+    count: "11",
+    rows: [
+      { name: "Critical exposure", detail: "External perimeter", value: "2" },
+      { name: "Patch validation", detail: "Endpoint fleet", value: "5" },
+      { name: "Config drift", detail: "Cloud services", value: "4" },
+    ],
+  },
+];
+
+const securityEngineerPriorities: SecurityEngineerPriority[] = [
+  {
+    title: "Harden firewall deny action retry",
+    detail: "Incident #801 needs rollback coverage before rollout.",
+    status: "critical",
+  },
+  {
+    title: "Review IAM policy drift",
+    detail: "12 privileged paths changed across the AWS landing zone.",
     status: "review",
   },
   {
-    id: "sec-144",
-    title: "Add compliance tags to privileged playbook changes",
-    summary: "Maps updates to GDPR and PCI evidence lanes so auditors can follow the lifecycle without manual exports.",
-    author: "anca.popescu",
-    timestamp: "2026-04-15 09:31",
-    scope: "audit",
-    status: "draft",
+    title: "Validate endpoint isolation fallback",
+    detail: "Dry run is ready for the EDR containment path.",
+    status: "testing",
+  },
+];
+
+const securityEngineerNotifications: SecurityEngineerNotification[] = [
+  {
+    id: 1,
+    title: "Firewall retry requires review",
+    detail: "The deny action for incident #801 returned a partial provider response.",
+    time: "8 min ago",
+    tone: "critical",
+  },
+  {
+    id: 2,
+    title: "IAM drift scan completed",
+    detail: "12 privileged paths changed since the previous AWS landing zone review.",
+    time: "24 min ago",
+    tone: "review",
+  },
+  {
+    id: 3,
+    title: "Secret rotation succeeded",
+    detail: "Cloud and VPN credentials rotated without failed targets.",
+    time: "1h ago",
+    tone: "testing",
   },
 ];
 
@@ -1095,6 +1162,13 @@ const threadsByRole: Record<Exclude<Role, "ADMIN">, MailThread[]> = {
   ],
 };
 
+function getNonAdminThreads(role: Exclude<Role, "ADMIN">) {
+  return threadsByRole[role].filter((thread) => (
+    !thread.participants.some((participant) => participant === "admin@local.dev")
+    && !thread.messages.some((message) => message.sender === "admin@local.dev")
+  ));
+}
+
 const meetingsByRole: Record<Exclude<Role, "ADMIN">, MeetingItem[]> = {
   MANAGER: [
     {
@@ -1408,7 +1482,7 @@ function NonAdminWorkspace({
   role: Exclude<Role, "ADMIN">;
   forceOpen: boolean;
 }) {
-  const threads = threadsByRole[role];
+  const threads = getNonAdminThreads(role);
   const mailbox = mailboxByRole[role];
   const [activeThreadId, setActiveThreadId] = useState<number>(threads[0]?.id ?? 0);
   const [meetings, setMeetings] = useState<MeetingItem[]>(meetingsByRole[role]);
@@ -2490,373 +2564,1080 @@ function AnalystDashboard({ mailOpen }: { mailOpen: boolean }) {
   );
 }
 
-function SecurityEngineerDashboard({ mailOpen }: { mailOpen: boolean }) {
-  const [selectedPlaybook, setSelectedPlaybook] = useState<PlaybookItem>(playbooks[0]);
-  const securityTasks = tasksByRole.SECURITY_ENGINEER;
-  const securityThreads = threadsByRole.SECURITY_ENGINEER;
+type RoleWorkspaceModule = {
+  id: string;
+  title: string;
+};
+
+function WorkspaceIcon({ name }: { name: string }) {
+  const paths: Record<string, ReactNode> = {
+    architecture: (
+      <>
+        <path d="M4 19h16" />
+        <path d="M6 19V8l6-4 6 4v11" />
+        <path d="M9 19v-6h6v6" />
+      </>
+    ),
+    automation: (
+      <>
+        <path d="M12 3v3" />
+        <path d="M12 18v3" />
+        <path d="m4.2 7.5 2.6 1.5" />
+        <path d="m17.2 15 2.6 1.5" />
+        <path d="m4.2 16.5 2.6-1.5" />
+        <path d="m17.2 9 2.6-1.5" />
+        <circle cx="12" cy="12" r="4" />
+      </>
+    ),
+    monitoring: (
+      <>
+        <path d="M3 12h4l2-5 4 10 2-5h6" />
+        <path d="M4 5h16v14H4z" />
+      </>
+    ),
+    compliance: (
+      <>
+        <path d="M12 3 5 6v5c0 4.6 3 8.1 7 10 4-1.9 7-5.4 7-10V6z" />
+        <path d="m9 12 2 2 4-4" />
+      </>
+    ),
+    vulnerabilities: (
+      <>
+        <path d="M12 8v4" />
+        <path d="M12 16h.01" />
+        <path d="M10.3 4.7 3.6 17a2 2 0 0 0 1.8 3h13.2a2 2 0 0 0 1.8-3L13.7 4.7a2 2 0 0 0-3.4 0Z" />
+      </>
+    ),
+    inbox: (
+      <>
+        <path d="M4 4h16v16H4z" />
+        <path d="m4 6 8 7 8-7" />
+      </>
+    ),
+    chat: (
+      <>
+        <path d="M4 5h16v11H8l-4 4z" />
+        <path d="M8 9h8" />
+        <path d="M8 12h5" />
+      </>
+    ),
+    notifications: (
+      <>
+        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+        <path d="M10 21h4" />
+      </>
+    ),
+    task: (
+      <>
+        <path d="M9 5h10" />
+        <path d="M9 12h10" />
+        <path d="M9 19h10" />
+        <path d="m4 5 1 1 2-2" />
+        <path d="m4 12 1 1 2-2" />
+        <path d="m4 19 1 1 2-2" />
+      </>
+    ),
+    search: <circle cx="11" cy="11" r="6" />,
+    logout: (
+      <>
+        <path d="M10 5H5v14h5" />
+        <path d="m14 8 4 4-4 4" />
+        <path d="M9 12h9" />
+      </>
+    ),
+    close: (
+      <>
+        <path d="m6 6 12 12" />
+        <path d="m18 6-12 12" />
+      </>
+    ),
+  };
 
   return (
-    <div className="dashboard-grid">
-      <section className="dashboard-card span-12 security-engineer-shell">
-        <div className="panel-heading">
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      {paths[name]}
+      {name === "search" ? <path d="m16 16 4 4" /> : null}
+    </svg>
+  );
+}
+
+function RoleWorkspaceShell({
+  modules,
+  activeModuleId,
+  onSelectModule,
+  searchValue,
+  onSearchChange,
+  unreadChatCount,
+  notificationCount,
+  drawerMode,
+  onOpenDrawer,
+  onCloseDrawer,
+  onLogout,
+  signedInUser,
+  workspacePersona,
+  children,
+  drawer,
+}: {
+  modules: RoleWorkspaceModule[];
+  activeModuleId: string;
+  onSelectModule: (moduleId: string) => void;
+  searchValue: string;
+  onSearchChange: (value: string) => void;
+  unreadChatCount: number;
+  notificationCount: number;
+  drawerMode: "chat" | "notifications" | null;
+  onOpenDrawer: (mode: "chat" | "notifications") => void;
+  onCloseDrawer: () => void;
+  onLogout: () => void;
+  signedInUser: StoredUser;
+  workspacePersona: string;
+  children: ReactNode;
+  drawer: ReactNode;
+}) {
+  return (
+    <div className={classNames("role-workspace-shell", drawerMode && "drawer-open")}>
+      <aside className="role-workspace-sidebar">
+        <div className="role-workspace-brand">
+          <div className="role-workspace-mark">CS</div>
           <div>
-            <span className="eyebrow tone-emerald">Security engineer workspace</span>
-            <h2>One place for defense design, response automation and engineering traceability</h2>
-          </div>
-          <div className="button-row">
-            <a href="#security-automation" className="ghost-button">Automation</a>
-            <a href="#security-code-lab" className="ghost-button">Code lab</a>
-            <a href="#security-changes" className="ghost-button">Changes</a>
+            <strong>CoreShield</strong>
+            <span>Security Engineer</span>
           </div>
         </div>
 
-        <div className="security-summary-grid">
-          {securityEngineerMetrics.map((item) => (
-            <article key={item.label} className="security-summary-card">
-              <span>{item.label}</span>
-              <strong>{item.value}</strong>
-              <p>{item.note}</p>
-            </article>
-          ))}
-        </div>
-
-        <div className="security-mission-grid">
-          {securityEngineerCapabilities.map((capability) => (
-            <article key={capability.title} className="security-mission-card">
-              <strong>{capability.title}</strong>
-              <p>{capability.detail}</p>
-            </article>
-          ))}
-        </div>
-
-        <div className="chart-grid chart-grid-three security-db-grid">
-          <article className="chart-card">
-            <div className="chart-card-head">
-              <strong>Automation rules</strong>
-              <span>from `automation_rules`</span>
-            </div>
-            {renderMiniBars(
-              automationRules.map((rule) => ({ label: `#${rule.id}`, value: rule.enabled ? 1 : 0 })),
-              "emerald"
-            )}
-          </article>
-          <article className="chart-card">
-            <div className="chart-card-head">
-              <strong>Playbook execution health</strong>
-              <span>from `playbook_executions`</span>
-            </div>
-            {renderMiniBars(
-              [
-                { label: "Success", value: executionLogs.filter((entry) => entry.status === "success").length },
-                { label: "Running", value: executionLogs.filter((entry) => entry.status === "running").length },
-                { label: "Failed", value: executionLogs.filter((entry) => entry.status === "failed").length },
-              ],
-              "emerald"
-            )}
-          </article>
-          <article className="chart-card">
-            <div className="chart-card-head">
-              <strong>Audit surfaces</strong>
-              <span>from `audit_logs.surface`</span>
-            </div>
-            {renderMiniBars(
-              [
-                { label: "users", value: auditLogs.filter((log) => log.surface === "users").length },
-                { label: "playbooks", value: auditLogs.filter((log) => log.surface === "playbooks").length },
-                { label: "incidents", value: auditLogs.filter((log) => log.surface === "incidents").length },
-                { label: "ml", value: auditLogs.filter((log) => log.surface === "ml-config").length },
-              ],
-              "cyan"
-            )}
-          </article>
-        </div>
-      </section>
-
-      <NonAdminWorkspace role="SECURITY_ENGINEER" forceOpen={mailOpen} />
-
-      <section className="dashboard-card span-4 security-side-stack">
-        <div className="section-heading">
-          <h3>Operations focus</h3>
-          <span>what needs attention right now</span>
-        </div>
-
-        <div className="security-side-list">
-          <article className="security-side-card">
-            <span className="status-pill severity-critical">Containment risk</span>
-            <strong>Firewall deny action still needs retry hardening</strong>
-            <p>Priority task linked to incident `#801`, with rollback required if provider returns partial success.</p>
-          </article>
-
-          <article className="security-side-card">
-            <span className="status-pill neutral">Internal chat</span>
-            <strong>{securityThreads.filter((thread) => thread.unread).length} unread engineering threads</strong>
-            <p>Inbox stays visible below so ops context and implementation work remain in the same flow.</p>
-          </article>
-
-          <article className="security-side-card">
-            <span className="status-pill task-in_progress">Task lane</span>
-            <strong>{securityTasks.filter((task) => task.status !== "done").length} active tasks in motion</strong>
-            <p>Engineering delivery, change notes and collaboration are grouped instead of split across tools.</p>
-          </article>
-        </div>
-      </section>
-
-      <section className="dashboard-card hero-panel span-8" id="security-automation">
-        <div className="panel-heading">
-          <div>
-            <span className="eyebrow tone-emerald">Automation studio</span>
-            <h2>Security engineering flow builder</h2>
-            <p className="dashboard-subtitle security-panel-copy">
-              Configure secure actions, validate trigger conditions and keep every run tied to incidents, audit trails and rollback logic.
-            </p>
-          </div>
-          <div className="button-row">
-            <button type="button" className="primary-button">
-              Save draft
+        <nav className="role-workspace-nav" aria-label="Security engineer modules">
+          {modules.map((module) => (
+            <button
+              key={module.id}
+              type="button"
+              className={classNames("role-workspace-nav-item", activeModuleId === module.id && "active")}
+              onClick={() => onSelectModule(module.id)}
+              title={module.title}
+            >
+              <span className="role-workspace-nav-icon"><WorkspaceIcon name={module.id} /></span>
+              <span>{module.title}</span>
             </button>
-            <button type="button" className="ghost-button">
-              Test playbook
+          ))}
+        </nav>
+
+        <div className="role-workspace-persona">
+          <span>Workspace persona</span>
+          <strong>{workspacePersona}</strong>
+          <small>automation + infrastructure</small>
+        </div>
+      </aside>
+
+      <main className="role-workspace-main">
+        <header className="role-workspace-topbar">
+          <div>
+            <span>Security Engineer</span>
+            <strong>Engineering command board</strong>
+          </div>
+
+          <label className="role-workspace-search">
+            <WorkspaceIcon name="search" />
+            <input
+              type="search"
+              value={searchValue}
+              onChange={(event) => onSearchChange(event.target.value)}
+              placeholder="Search active module"
+            />
+          </label>
+
+          <div className="role-workspace-actions">
+            <button type="button" className="role-workspace-icon-button" onClick={() => onOpenDrawer("chat")} aria-label="Open engineering chat">
+              <WorkspaceIcon name="chat" />
+              {unreadChatCount ? <small>{unreadChatCount}</small> : null}
+            </button>
+            <button type="button" className="role-workspace-icon-button" onClick={() => onOpenDrawer("notifications")} aria-label="Open notifications and tasks">
+              <WorkspaceIcon name="notifications" />
+              {notificationCount ? <small>{notificationCount}</small> : null}
+            </button>
+            <div className="role-workspace-user">
+              <span>Signed in as</span>
+              <strong>{signedInUser.email}</strong>
+            </div>
+            <button type="button" className="role-workspace-icon-button" onClick={onLogout} aria-label="Logout">
+              <WorkspaceIcon name="logout" />
             </button>
           </div>
-        </div>
+        </header>
 
-        <div className="builder-layout">
-          <aside className="builder-sidebar">
-            <div className="section-heading">
-              <h3>Playbook catalog</h3>
-              <span>select a flow to edit</span>
-            </div>
+        {children}
+      </main>
 
-            <div className="builder-list">
-              {playbooks.map((playbook) => (
-                <button
-                  key={playbook.id}
-                  type="button"
-                  className={classNames(
-                    "builder-list-item",
-                    selectedPlaybook.id === playbook.id && "active"
-                  )}
-                  onClick={() => setSelectedPlaybook(playbook)}
-                >
-                  <strong>{playbook.name}</strong>
-                  <span>{playbook.steps.length} steps</span>
-                </button>
-              ))}
-            </div>
-
-            <div className="toolbox">
-              <span className="toolbox-title">Step toolbox</span>
-              <div className="toolbox-pills">
-                <span>API_CALL</span>
-                <span>EMAIL</span>
-                <span>SCRIPT</span>
-              </div>
-            </div>
-          </aside>
-
-          <div className="builder-canvas">
-            <div className="flow-meta">
-              <div>
-                <h3>{selectedPlaybook.name}</h3>
-                <p>{selectedPlaybook.description}</p>
-              </div>
-              <div className="row-metrics">
-                <span>{selectedPlaybook.runs} executions</span>
-                <span>{selectedPlaybook.successRate}% success</span>
-              </div>
-            </div>
-
-            <div className="flow-lane">
-              {selectedPlaybook.steps.map((step, index) => (
-                <div key={step.id} className="flow-step-wrap">
-                  <article className="flow-step">
-                    <span className="flow-step-type">{step.actionType}</span>
-                    <strong>
-                      {step.stepOrder}. {step.label}
-                    </strong>
-                    <code>{step.config}</code>
-                  </article>
-                  {index < selectedPlaybook.steps.length - 1 ? <div className="flow-arrow" /> : null}
-                </div>
-              ))}
-
-              <button type="button" className="flow-add">
-                + Add step
-              </button>
-            </div>
-          </div>
-
-          <aside className="builder-sidebar">
-            <div className="section-heading">
-              <h3>Step configuration</h3>
-              <span>editable JSON shape</span>
-            </div>
-
-            <label className="editor-field">
-              <span>Trigger condition</span>
-              <textarea
-                defaultValue={`{\n  "severity": "critical",\n  "source": "ml_based",\n  "confidence_score": { "gte": 0.85 }\n}`}
-              />
-            </label>
-
-            <label className="editor-field">
-              <span>Execution notes</span>
-              <textarea
-                defaultValue={`- Validate external provider response\n- Write execution_logs on each transition\n- Roll back deny rule if API returns partial failure`}
-              />
-            </label>
-          </aside>
-        </div>
-      </section>
-
-      <section className="dashboard-card span-4">
-        <div className="section-heading">
-          <h3>Automation rules</h3>
-          <span>actual logic from `automation_rules`</span>
-        </div>
-        <div className="table-list">
-          {automationRules.map((rule) => (
-            <div key={rule.id} className="table-row">
-              <div>
-                <strong>{rule.name}</strong>
-                <span>{rule.action}</span>
-              </div>
-              <div className="row-metrics">
-                <span className="status-pill neutral">{rule.enabled ? "enabled" : "disabled"}</span>
-                <button type="button" className="mini-button">Inspect</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="dashboard-card span-6" id="security-code-lab">
-        <div className="section-heading">
+      <aside className="role-workspace-drawer" aria-hidden={!drawerMode}>
+        <div className="role-workspace-drawer-head">
           <div>
-            <h3>Code and automation lab</h3>
-            <span>write scripts, review infrastructure config and ship safe changes</span>
+            <span>{drawerMode === "chat" ? "Engineering chat" : "Operations center"}</span>
+            <strong>{drawerMode === "chat" ? "Team conversations" : "Notifications & tasks"}</strong>
           </div>
-          <button type="button" className="mini-button">
-            Run dry test
+          <button type="button" className="role-workspace-icon-button" onClick={onCloseDrawer} aria-label="Close side panel">
+            <WorkspaceIcon name="close" />
+          </button>
+        </div>
+        {drawer}
+      </aside>
+
+      {drawerMode ? <button type="button" className="role-workspace-scrim" onClick={onCloseDrawer} aria-label="Close side panel" /> : null}
+    </div>
+  );
+}
+
+function buildDirectoryGroupConversations(groups: ChatDirectoryGroup[]): ChatConversation[] {
+  return groups.map((group) => ({
+    id: `group-${group.id}`,
+    kind: "group",
+    subject: group.role ? `${group.label} Group` : group.label,
+    participants: group.participants,
+    preview: group.role
+      ? `Role channel for ${group.participants.length} ${group.label.toLowerCase()} members.`
+      : `Shared channel for ${group.participants.length} CoreShield team members.`,
+    unread: false,
+    messages: [
+      {
+        sender: "CoreShield",
+        timestamp: "Now",
+        body: group.role
+          ? `This group includes every active ${group.label.toLowerCase()} account from the users table.`
+          : "This group includes every active non-admin account from the users table.",
+      },
+    ],
+  }));
+}
+
+type ChatComposerMode = "direct" | "group";
+
+function SecurityEngineerChatDrawer({
+  directory,
+  currentUserEmail,
+  isLoading,
+  errorMessage,
+}: {
+  directory: ChatDirectory;
+  currentUserEmail: string;
+  isLoading: boolean;
+  errorMessage: string;
+}) {
+  const [conversations, setConversations] = useState<ChatConversation[]>(() => buildDirectoryGroupConversations(directory.groups));
+  const [activeThreadId, setActiveThreadId] = useState(() => conversations[0]?.id ?? "");
+  const [draftReply, setDraftReply] = useState("");
+  const [isContactPickerOpen, setIsContactPickerOpen] = useState(false);
+  const [composerMode, setComposerMode] = useState<ChatComposerMode>("direct");
+  const [contactSearch, setContactSearch] = useState("");
+  const [groupName, setGroupName] = useState("");
+  const [selectedContactIds, setSelectedContactIds] = useState<number[]>([]);
+  const activeThread = conversations.find((thread) => thread.id === activeThreadId) ?? conversations[0];
+  const normalizedContactSearch = contactSearch.trim().toLowerCase();
+  const availableContacts = directory.users.filter((user) => (
+    user.email !== currentUserEmail
+    && user.email.toLowerCase().includes(normalizedContactSearch)
+  ));
+
+  const sendReply = () => {
+    const reply = draftReply.trim();
+
+    if (!reply || !activeThread) {
+      return;
+    }
+
+    setConversations((current) => current.map((conversation) => (
+      conversation.id === activeThread.id
+        ? {
+            ...conversation,
+            preview: reply,
+            messages: [
+              ...conversation.messages,
+              {
+                sender: currentUserEmail,
+                timestamp: "Now",
+                body: reply,
+              },
+            ],
+          }
+        : conversation
+    )));
+    setDraftReply("");
+  };
+
+  const startDirectConversation = (contact: ChatDirectoryUser) => {
+    const conversationId = `direct-${contact.id}`;
+    const existingConversation = conversations.find((conversation) => conversation.id === conversationId);
+
+    if (!existingConversation) {
+      setConversations((current) => [
+        ...current,
+        {
+          id: conversationId,
+          kind: "direct",
+          subject: contact.email,
+          participants: [currentUserEmail, contact.email],
+          preview: `Start a new conversation with ${contact.email}.`,
+          unread: false,
+          messages: [],
+        },
+      ]);
+    }
+
+    setActiveThreadId(conversationId);
+    setIsContactPickerOpen(false);
+    setContactSearch("");
+  };
+
+  const toggleGroupContact = (contactId: number) => {
+    setSelectedContactIds((current) => (
+      current.includes(contactId)
+        ? current.filter((entry) => entry !== contactId)
+        : [...current, contactId]
+    ));
+  };
+
+  const createGroupConversation = () => {
+    const selectedContacts = directory.users.filter((user) => selectedContactIds.includes(user.id));
+    const normalizedGroupName = groupName.trim();
+
+    if (!normalizedGroupName || !selectedContacts.length) {
+      return;
+    }
+
+    const conversationId = `custom-group-${Date.now()}`;
+    const participants = Array.from(new Set([currentUserEmail, ...selectedContacts.map((contact) => contact.email)]));
+
+    setConversations((current) => [
+      ...current,
+      {
+        id: conversationId,
+        kind: "group",
+        subject: normalizedGroupName,
+        participants,
+        preview: `New group with ${participants.length} participants.`,
+        unread: false,
+        messages: [],
+      },
+    ]);
+    setActiveThreadId(conversationId);
+    setIsContactPickerOpen(false);
+    setComposerMode("direct");
+    setContactSearch("");
+    setGroupName("");
+    setSelectedContactIds([]);
+  };
+
+  return (
+    <div className="security-drawer-content security-chat-drawer">
+      <section className="security-chat-thread-list">
+        <div className="security-drawer-section-head">
+          <strong>Conversations</strong>
+          <button type="button" className="security-chat-new-button" onClick={() => setIsContactPickerOpen((current) => !current)}>
+            + New
           </button>
         </div>
 
-        <div className="code-lab-layout">
-          <div className="code-lab-files">
-            <span className="code-lab-label">Workspace</span>
-            {codeWorkbenchFiles.map((file) => (
-              <button key={file} type="button" className="builder-list-item">
-                <strong>{file.split("/").at(-1)}</strong>
-                <span>{file}</span>
+        {isContactPickerOpen ? (
+          <div className="security-chat-contact-picker">
+            <div className="security-chat-composer-tabs">
+              <button type="button" className={composerMode === "direct" ? "active" : ""} onClick={() => setComposerMode("direct")}>
+                Direct message
               </button>
-            ))}
-          </div>
-
-          <div className="code-editor-card">
-            <div className="code-editor-topline">
-              <strong>archive_ioc.py</strong>
-              <span>autosave sandbox</span>
+              <button type="button" className={composerMode === "group" ? "active" : ""} onClick={() => setComposerMode("group")}>
+                New group
+              </button>
             </div>
-            <pre className="code-editor-preview">
-              <code>{codeWorkbenchPreview}</code>
-            </pre>
-            <div className="code-lab-footer">
-              <span>Linked to: Block Malicious IP</span>
-              <span>Last validation: 10:19</span>
+
+            {composerMode === "group" ? (
+              <input
+                className="security-chat-group-name"
+                value={groupName}
+                onChange={(event) => setGroupName(event.target.value)}
+                placeholder="Group name"
+              />
+            ) : null}
+
+            <label>
+              <WorkspaceIcon name="search" />
+              <input
+                type="search"
+                value={contactSearch}
+                onChange={(event) => setContactSearch(event.target.value)}
+                placeholder="Find a non-admin teammate"
+              />
+            </label>
+            <div className="security-chat-contact-results">
+              {availableContacts.map((contact) => (
+                <button
+                  key={contact.id}
+                  type="button"
+                  className={composerMode === "group" && selectedContactIds.includes(contact.id) ? "selected" : ""}
+                  onClick={() => composerMode === "direct" ? startDirectConversation(contact) : toggleGroupContact(contact.id)}
+                >
+                  <strong>{contact.email}</strong>
+                  <span>{contact.role.replace("_", " ")}</span>
+                </button>
+              ))}
+              {!availableContacts.length && !isLoading ? <small>No matching teammates found.</small> : null}
             </div>
+
+            {composerMode === "group" ? (
+              <button
+                type="button"
+                className="security-primary-button security-chat-create-group"
+                disabled={!groupName.trim() || !selectedContactIds.length}
+                onClick={createGroupConversation}
+              >
+                Create group · {selectedContactIds.length} selected
+              </button>
+            ) : null}
           </div>
-        </div>
-      </section>
+        ) : null}
 
-      <section className="dashboard-card span-6">
-        <div className="section-heading">
-          <h3>Execution pipeline</h3>
-          <span>success vs. failure rate</span>
-        </div>
-        {renderMiniBars(
-          [
-            { label: "API actions", value: 94 },
-            { label: "Script actions", value: 88 },
-            { label: "Email actions", value: 99 },
-          ],
-          "emerald"
-        )}
-      </section>
+        {isLoading ? <div className="security-empty-state">Loading teammates from users...</div> : null}
+        {errorMessage ? <div className="security-chat-error">{errorMessage}</div> : null}
 
-      <section className="dashboard-card span-6" id="security-changes">
-        <div className="section-heading">
-          <h3>Recent engineering changes</h3>
-          <span>commit-style traceability for automation updates</span>
-        </div>
-
-        <div className="commit-list">
-          {securityCommits.map((commit) => (
-            <article key={commit.id} className="commit-card">
-              <div className="commit-topline">
-                <div>
-                  <strong>{commit.title}</strong>
-                  <span>{commit.id} • {commit.scope}</span>
-                </div>
-                <span className={`status-pill commit-${commit.status}`}>{commit.status}</span>
-              </div>
-              <p>{commit.summary}</p>
-              <div className="commit-meta">
-                <span>{commit.author}</span>
-                <span>{commit.timestamp}</span>
-              </div>
-            </article>
+        <div className="security-drawer-list">
+          {conversations.map((thread) => (
+            <button
+              key={thread.id}
+              type="button"
+              className={classNames("security-drawer-thread", activeThread?.id === thread.id && "active")}
+              onClick={() => setActiveThreadId(thread.id)}
+            >
+              <strong>{thread.subject}</strong>
+              <span>{thread.preview}</span>
+            </button>
           ))}
         </div>
       </section>
 
-      <section className="dashboard-card span-6">
-        <div className="section-heading">
-          <h3>DB mapping</h3>
-          <span>how the engineer role touches core tables</span>
+      {activeThread ? <section className="security-drawer-conversation">
+        <div className="security-drawer-section-head">
+          <strong>{activeThread.subject}</strong>
+          <span>{activeThread.participants.length} participants</span>
         </div>
-        <div className="timeline">
-          <article className="timeline-item">
-            <span className="timeline-time">alerts</span>
-            <div>
-              <strong>Input signals trigger automation conditions</strong>
-              <p>Engineers use alert attributes to design `automation_rules` and attach the right playbook path.</p>
-            </div>
-          </article>
-          <article className="timeline-item">
-            <span className="timeline-time">playbooks</span>
-            <div>
-              <strong>Execution logic lives in playbooks and steps</strong>
-              <p>Each response flow is modeled through `playbooks`, `playbook_steps` and execution monitoring.</p>
-            </div>
-          </article>
-          <article className="timeline-item">
-            <span className="timeline-time">audit_logs</span>
-            <div>
-              <strong>Every privileged change remains traceable</strong>
-              <p>Engineer changes surface in audit and can be reviewed alongside commit-style updates.</p>
-            </div>
-          </article>
+        <div className="security-chat-feed">
+          {activeThread.messages.map((message, index) => (
+            <article
+              key={`${activeThread.id}-${index}`}
+              className={classNames("security-chat-message", message.sender === currentUserEmail && "own")}
+            >
+              <strong>{message.sender}</strong>
+              <p>{message.body}</p>
+              <small>{message.timestamp}</small>
+            </article>
+          ))}
+          {!activeThread.messages.length ? (
+            <div className="security-empty-state">No messages yet. Write the first one below.</div>
+          ) : null}
+        </div>
+        <div className="security-chat-compose">
+          <textarea
+            value={draftReply}
+            onChange={(event) => setDraftReply(event.target.value)}
+            placeholder="Write a reply..."
+          />
+          <button type="button" className="security-primary-button" onClick={sendReply}>Send reply</button>
+        </div>
+      </section> : null}
+    </div>
+  );
+}
+
+function SecurityEngineerNotificationsDrawer({
+  notifications,
+  onDismissNotification,
+  tasks,
+  onAdvanceTask,
+}: {
+  notifications: SecurityEngineerNotification[];
+  onDismissNotification: (notificationId: number) => void;
+  tasks: TaskItem[];
+  onAdvanceTask: (taskId: number) => void;
+}) {
+  return (
+    <div className="security-drawer-content">
+      <section>
+        <div className="security-drawer-section-head">
+          <strong>Notifications</strong>
+          <span>{notifications.length} active</span>
+        </div>
+        <div className="security-drawer-list">
+          {notifications.length ? notifications.map((notification) => (
+            <article key={notification.id} className="security-drawer-notification">
+              <span className={`security-priority-dot ${notification.tone}`} />
+              <div>
+                <strong>{notification.title}</strong>
+                <p>{notification.detail}</p>
+                <small>{notification.time}</small>
+              </div>
+              <button type="button" onClick={() => onDismissNotification(notification.id)} aria-label={`Dismiss ${notification.title}`}>
+                <WorkspaceIcon name="close" />
+              </button>
+            </article>
+          )) : <div className="security-empty-state">No active notifications.</div>}
         </div>
       </section>
 
-      <section className="dashboard-card span-6">
-        <div className="section-heading">
-          <h3>Audit-linked timeline</h3>
-          <span>who changed what and why</span>
+      <section>
+        <div className="security-drawer-section-head">
+          <strong>Assigned tasks</strong>
+          <span>{tasks.filter((task) => task.status !== "done").length} active</span>
         </div>
-        <div className="timeline">
-          {auditLogs.map((log) => (
-            <article key={log.id} className="timeline-item">
-              <span className="timeline-time">{log.timestamp}</span>
-              <div>
-                <strong>{log.action}</strong>
-                <p>{log.details}</p>
-              </div>
+        <div className="security-drawer-list">
+          {tasks.map((task) => (
+            <article key={task.id} className="security-drawer-task">
+              <span className={`status-pill task-${task.status}`}>{task.status.replace("_", " ")}</span>
+              <strong>{task.title}</strong>
+              <small>{task.due}</small>
+              <button type="button" className="security-demo-button" onClick={() => onAdvanceTask(task.id)}>
+                Advance status
+              </button>
             </article>
           ))}
         </div>
       </section>
     </div>
+  );
+}
+
+function SecurityAutomationStudio({
+  initialPlaybooks,
+  onClose,
+}: {
+  initialPlaybooks: PlaybookItem[];
+  onClose: () => void;
+}) {
+  const [studioPlaybooks, setStudioPlaybooks] = useState(initialPlaybooks);
+  const [selectedPlaybookId, setSelectedPlaybookId] = useState(initialPlaybooks[0].id);
+  const selectedPlaybook = studioPlaybooks.find((playbook) => playbook.id === selectedPlaybookId) ?? studioPlaybooks[0];
+  const [selectedStepId, setSelectedStepId] = useState(selectedPlaybook.steps[0].id);
+  const [studioMessage, setStudioMessage] = useState("");
+  const selectedStep = selectedPlaybook.steps.find((step) => step.id === selectedStepId) ?? selectedPlaybook.steps[0];
+
+  const selectPlaybook = (playbookId: number) => {
+    const playbook = studioPlaybooks.find((entry) => entry.id === playbookId) ?? studioPlaybooks[0];
+    setSelectedPlaybookId(playbook.id);
+    setSelectedStepId(playbook.steps[0].id);
+    setStudioMessage("");
+  };
+
+  const updateStepConfig = (config: string) => {
+    setStudioPlaybooks((current) => current.map((playbook) => (
+      playbook.id === selectedPlaybook.id
+        ? {
+            ...playbook,
+            steps: playbook.steps.map((step) => step.id === selectedStep.id ? { ...step, config } : step),
+          }
+        : playbook
+    )));
+  };
+
+  const addValidationStep = () => {
+    const nextId = Math.max(...studioPlaybooks.flatMap((playbook) => playbook.steps.map((step) => step.id))) + 1;
+
+    setStudioPlaybooks((current) => current.map((playbook) => (
+      playbook.id === selectedPlaybook.id
+        ? {
+            ...playbook,
+            steps: [
+              ...playbook.steps,
+              {
+                id: nextId,
+                stepOrder: playbook.steps.length + 1,
+                actionType: "SCRIPT",
+                label: "Validate provider response",
+                config: '{ "script": "validate_provider_response.py", "rollback_on_failure": true }',
+              },
+            ],
+          }
+        : playbook
+    )));
+    setSelectedStepId(nextId);
+    setStudioMessage("Validation step added to the draft.");
+  };
+
+  const saveStepConfig = async () => {
+    let config;
+
+    try {
+      config = JSON.parse(selectedStep.config);
+    } catch {
+      setStudioMessage("Configuration must be valid JSON before it can be saved.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:8000/security-engineer/playbook-steps/${selectedStep.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ config }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Could not save the selected playbook step.");
+      }
+
+      setStudioMessage(`${selectedStep.label} configuration saved to PostgreSQL.`);
+    } catch (error) {
+      setStudioMessage(error instanceof Error ? error.message : "Could not save the selected playbook step.");
+    }
+  };
+
+  return (
+    <section className="security-studio">
+      <header className="security-studio-topbar">
+        <div>
+          <button type="button" className="security-demo-button" onClick={onClose}>Back to overview</button>
+          <span>Automation studio</span>
+          <h1>{selectedPlaybook.name}</h1>
+        </div>
+        <div className="security-studio-actions">
+          <button type="button" className="security-demo-button" onClick={() => setStudioMessage("Draft saved locally.")}>Save draft</button>
+          <button type="button" className="security-primary-button" onClick={() => setStudioMessage("Playbook published in demo mode.")}>Publish playbook</button>
+        </div>
+      </header>
+
+      {studioMessage ? <div className="security-studio-message">{studioMessage}</div> : null}
+
+      <div className="security-studio-layout">
+        <aside className="security-studio-sidebar">
+          <span className="security-command-kicker">Playbook catalog</span>
+          <div className="security-studio-catalog">
+            {studioPlaybooks.map((playbook) => (
+              <button
+                key={playbook.id}
+                type="button"
+                className={classNames("security-studio-playbook", selectedPlaybook.id === playbook.id && "active")}
+                onClick={() => selectPlaybook(playbook.id)}
+              >
+                <strong>{playbook.name}</strong>
+                <span>{playbook.steps.length} steps · {playbook.successRate}% success</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="security-studio-toolbox">
+            <span className="security-command-kicker">Action toolbox</span>
+            <div>
+              <button type="button" onClick={addValidationStep}>+ Validation script</button>
+              <button type="button" onClick={() => setStudioMessage("API action selected. Add it from the active playbook flow.")}>+ API call</button>
+              <button type="button" onClick={() => setStudioMessage("Notification action selected. Add it from the active playbook flow.")}>+ Notification</button>
+            </div>
+          </div>
+        </aside>
+
+        <div className="security-studio-canvas">
+          <div className="security-studio-canvas-head">
+            <div>
+              <span>Response workflow</span>
+              <strong>{selectedPlaybook.description}</strong>
+            </div>
+            <small>{selectedPlaybook.runs} executions</small>
+          </div>
+
+          <div className="security-flow-grid">
+            <article className="security-flow-trigger">
+              <span>Trigger</span>
+              <strong>Incident severity ≥ high</strong>
+              <small>SIEM, EDR or identity signal</small>
+            </article>
+
+            {selectedPlaybook.steps.map((step) => (
+              <button
+                key={step.id}
+                type="button"
+                className={classNames("security-flow-node", selectedStep.id === step.id && "active")}
+                onClick={() => setSelectedStepId(step.id)}
+              >
+                <span>{step.actionType}</span>
+                <strong>{step.stepOrder}. {step.label}</strong>
+                <small>{selectedStep.id === step.id ? "Selected for editing" : "Click to configure"}</small>
+              </button>
+            ))}
+
+            <button type="button" className="security-flow-add" onClick={addValidationStep}>+ Add validation step</button>
+          </div>
+        </div>
+
+        <aside className="security-studio-config">
+          <span className="security-command-kicker">Selected block</span>
+          <h2>{selectedStep.label}</h2>
+          <label>
+            <span>Action type</span>
+            <input value={selectedStep.actionType} readOnly />
+          </label>
+          <label>
+            <span>Step configuration</span>
+            <textarea value={selectedStep.config} onChange={(event) => updateStepConfig(event.target.value)} />
+          </label>
+          <div className="security-studio-config-actions">
+            <button type="button" className="security-primary-button" onClick={saveStepConfig}>Save changes</button>
+            <button type="button" className="security-demo-button" onClick={() => setStudioMessage("Dry test passed. Audit trace attached.")}>Run dry test</button>
+          </div>
+        </aside>
+      </div>
+    </section>
+  );
+}
+
+function SecurityModuleWorkspace({
+  module,
+  mode,
+  onClose,
+}: {
+  module: SecurityEngineerModule;
+  mode: "module" | "evidence";
+  onClose: () => void;
+}) {
+  const [selectedRow, setSelectedRow] = useState(module.rows[0]);
+  const [note, setNote] = useState("");
+  const [message, setMessage] = useState("");
+
+  return (
+    <section className="security-generic-workspace">
+      <header className="security-studio-topbar">
+        <div>
+          <button type="button" className="security-demo-button" onClick={onClose}>Back to overview</button>
+          <span>{mode === "evidence" ? "Evidence workspace" : "Operational workspace"}</span>
+          <h1>{module.title}</h1>
+        </div>
+        <button type="button" className="security-primary-button" onClick={() => setMessage("Workspace changes saved locally.")}>Save review</button>
+      </header>
+
+      {message ? <div className="security-studio-message">{message}</div> : null}
+
+      <div className="security-generic-grid">
+        <article className="security-glass-card security-generic-list">
+          <span className="security-command-kicker">{mode === "evidence" ? "Evidence lanes" : "Managed controls"}</span>
+          <p>{module.description}</p>
+          {module.rows.map((row) => (
+            <button key={row.name} type="button" className={classNames("security-module-row", selectedRow.name === row.name && "active")} onClick={() => setSelectedRow(row)}>
+              <div>
+                <strong>{row.name}</strong>
+                <span>{row.detail}</span>
+              </div>
+              <em>{row.value}</em>
+            </button>
+          ))}
+        </article>
+
+        <article className="security-glass-card security-generic-detail">
+          <span className="security-command-kicker">Selected control</span>
+          <h2>{selectedRow.name}</h2>
+          <p>{selectedRow.detail}. Track the engineering decision, attach validation notes and keep the change trace ready for audit.</p>
+          <label>
+            <span>Engineering notes</span>
+            <textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Add validation context..." />
+          </label>
+          <div className="security-module-footer">
+            <button type="button" className="security-primary-button" onClick={() => setMessage(`${selectedRow.name} marked as reviewed.`)}>Mark reviewed</button>
+            <button type="button" className="security-demo-button" onClick={() => setMessage(`Evidence bundle prepared for ${selectedRow.name}.`)}>Prepare evidence</button>
+          </div>
+        </article>
+      </div>
+    </section>
+  );
+}
+
+function SecurityEngineerDashboard({
+  user,
+  onLogout,
+}: {
+  user: StoredUser;
+  onLogout: () => void;
+}) {
+  const [activeModuleId, setActiveModuleId] = useState(securityEngineerModules[0].id);
+  const [searchValue, setSearchValue] = useState("");
+  const [drawerMode, setDrawerMode] = useState<"chat" | "notifications" | null>(null);
+  const [workspaceMode, setWorkspaceMode] = useState<"module" | "evidence" | null>(null);
+  const [dashboardData, setDashboardData] = useState<SecurityEngineerDashboardData>({
+    metrics: securityEngineerMetrics,
+    modules: securityEngineerModules,
+    priorities: securityEngineerPriorities,
+    notifications: securityEngineerNotifications,
+    playbooks,
+    tasks: tasksByRole.SECURITY_ENGINEER,
+  });
+  const [isDashboardLoading, setIsDashboardLoading] = useState(true);
+  const [dashboardError, setDashboardError] = useState("");
+  const [chatDirectory, setChatDirectory] = useState<ChatDirectory>({ users: [], groups: [] });
+  const [isChatDirectoryLoading, setIsChatDirectoryLoading] = useState(true);
+  const [chatDirectoryError, setChatDirectoryError] = useState("");
+  const modules = dashboardData.modules.length ? dashboardData.modules : securityEngineerModules;
+  const activeModule =
+    modules.find((module) => module.id === activeModuleId) ?? modules[0];
+  const normalizedSearch = searchValue.trim().toLowerCase();
+  const filteredRows = activeModule.rows.filter((row) =>
+    `${row.name} ${row.detail}`.toLowerCase().includes(normalizedSearch)
+  );
+  const chatPersona = user.role === "SECURITY_ENGINEER"
+    ? user.email
+    : chatDirectory.users.find((entry) => entry.role === "SECURITY_ENGINEER")?.email ?? "anca.popescu@local.dev";
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function loadChatDirectory() {
+      setIsChatDirectoryLoading(true);
+      setChatDirectoryError("");
+
+      try {
+        const response = await fetch("http://localhost:8000/users/chat-directory");
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.detail || "Could not load chat teammates.");
+        }
+
+        if (!isCancelled) {
+          setChatDirectory({
+            users: data.users ?? [],
+            groups: data.groups ?? [],
+          });
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          setChatDirectory({ users: [], groups: [] });
+          setChatDirectoryError(error instanceof Error ? error.message : "Could not load chat teammates.");
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsChatDirectoryLoading(false);
+        }
+      }
+    }
+
+    loadChatDirectory();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function loadDashboard() {
+      setIsDashboardLoading(true);
+      setDashboardError("");
+
+      try {
+        const response = await fetch("http://localhost:8000/security-engineer/dashboard");
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.detail || "Could not load Security Engineer data.");
+        }
+
+        if (!isCancelled) {
+          setDashboardData(data);
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          setDashboardError(error instanceof Error ? error.message : "Could not load Security Engineer data.");
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsDashboardLoading(false);
+        }
+      }
+    }
+
+    loadDashboard();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  const dismissNotification = async (notificationId: number) => {
+    try {
+      const response = await fetch(`http://localhost:8000/security-engineer/notifications/${notificationId}/dismiss`, {
+        method: "PUT",
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Could not dismiss notification.");
+      }
+
+      setDashboardData((current) => ({
+        ...current,
+        notifications: current.notifications.filter((notification) => notification.id !== notificationId),
+      }));
+    } catch (error) {
+      setDashboardError(error instanceof Error ? error.message : "Could not dismiss notification.");
+    }
+  };
+
+  const advanceTask = async (taskId: number) => {
+    const task = dashboardData.tasks.find((entry) => entry.id === taskId);
+
+    if (!task) {
+      return;
+    }
+
+    const status = task.status === "queued"
+      ? "in_progress"
+      : task.status === "in_progress"
+        ? "done"
+        : "queued";
+
+    try {
+      const response = await fetch(`http://localhost:8000/security-engineer/tasks/${taskId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Could not update task.");
+      }
+
+      setDashboardData((current) => ({
+        ...current,
+        tasks: current.tasks.map((entry) => entry.id === taskId ? { ...entry, status } : entry),
+      }));
+    } catch (error) {
+      setDashboardError(error instanceof Error ? error.message : "Could not update task.");
+    }
+  };
+
+  const selectModule = (moduleId: string) => {
+    setActiveModuleId(moduleId);
+    setSearchValue("");
+    setWorkspaceMode(null);
+  };
+
+  if (workspaceMode === "module" && activeModule.id === "automation") {
+    return <SecurityAutomationStudio initialPlaybooks={dashboardData.playbooks.length ? dashboardData.playbooks : playbooks} onClose={() => setWorkspaceMode(null)} />;
+  }
+
+  if (workspaceMode) {
+    return <SecurityModuleWorkspace module={activeModule} mode={workspaceMode} onClose={() => setWorkspaceMode(null)} />;
+  }
+
+  return (
+    <RoleWorkspaceShell
+      modules={modules}
+      activeModuleId={activeModuleId}
+      onSelectModule={selectModule}
+      searchValue={searchValue}
+      onSearchChange={setSearchValue}
+      unreadChatCount={0}
+      notificationCount={dashboardData.notifications.length}
+      drawerMode={drawerMode}
+      onOpenDrawer={setDrawerMode}
+      onCloseDrawer={() => setDrawerMode(null)}
+      onLogout={onLogout}
+      signedInUser={user}
+      workspacePersona={chatPersona.split("@")[0]}
+      drawer={
+        <>
+          <div hidden={drawerMode !== "chat"}>
+            <SecurityEngineerChatDrawer
+              key={chatDirectory.groups
+                .filter((group) => group.role === null || group.role === "SECURITY_ENGINEER")
+                .map((group) => `${group.id}:${group.participants.join(",")}`)
+                .join("|")}
+              directory={{
+                users: chatDirectory.users,
+                groups: chatDirectory.groups.filter((group) => group.role === null || group.role === "SECURITY_ENGINEER"),
+              }}
+              currentUserEmail={chatPersona}
+              isLoading={isChatDirectoryLoading}
+              errorMessage={chatDirectoryError}
+            />
+          </div>
+          <div hidden={drawerMode !== "notifications"}>
+            <SecurityEngineerNotificationsDrawer
+              notifications={dashboardData.notifications}
+              onDismissNotification={dismissNotification}
+              tasks={dashboardData.tasks}
+              onAdvanceTask={advanceTask}
+            />
+          </div>
+        </>
+      }
+    >
+      <section className="security-command-content">
+        <div className="security-command-intro">
+          <div>
+            <span className="security-command-kicker">Active defense workspace</span>
+            <h1>Build resilient systems.<br />Respond with precision.</h1>
+          </div>
+          <p>Design secure infrastructure, automate containment and keep engineering evidence ready for review.</p>
+        </div>
+        {isDashboardLoading ? <div className="security-studio-message">Loading operational data from PostgreSQL...</div> : null}
+        {dashboardError ? <div className="security-chat-error">{dashboardError}</div> : null}
+
+        <div className="security-command-metrics">
+          {dashboardData.metrics.map((metric) => (
+            <article key={metric.label} className="security-glass-card security-metric-card">
+              <span>{metric.label}</span>
+              <strong>{metric.value}</strong>
+              <p>{metric.note}</p>
+            </article>
+          ))}
+        </div>
+
+        <div className="security-command-grid">
+          <article className="security-glass-card security-module-panel">
+            <div className="security-module-heading">
+              <span className="role-workspace-nav-icon"><WorkspaceIcon name={activeModule.id} /></span>
+              <div>
+                <span>Selected module</span>
+                <h2>{activeModule.title}</h2>
+              </div>
+              <strong>{activeModule.count}</strong>
+            </div>
+            <p>{activeModule.description}</p>
+
+            <div className="security-module-results">
+              {filteredRows.length ? filteredRows.map((row) => (
+                <div key={row.name} className="security-module-row">
+                  <div>
+                    <strong>{row.name}</strong>
+                    <span>{row.detail}</span>
+                  </div>
+                  <em>{row.value}</em>
+                </div>
+              )) : (
+                <div className="security-empty-state">No results found in {activeModule.title}.</div>
+              )}
+            </div>
+
+            <div className="security-module-footer">
+              <button type="button" className="security-primary-button" onClick={() => setWorkspaceMode("module")}>
+                {activeModule.action}
+              </button>
+              <button type="button" className="security-demo-button" onClick={() => setWorkspaceMode("evidence")}>
+                View evidence
+              </button>
+            </div>
+          </article>
+
+          <aside className="security-command-priorities">
+            <div className="security-section-title">
+              <div>
+                <span>Current focus</span>
+                <h2>Engineering priorities</h2>
+              </div>
+              <strong>{String(dashboardData.priorities.length).padStart(2, "0")}</strong>
+            </div>
+            {dashboardData.priorities.map((priority) => (
+              <article key={priority.title} className="security-glass-card security-priority-card">
+                <span className={`security-priority-dot ${priority.status}`} />
+                <div>
+                  <strong>{priority.title}</strong>
+                  <p>{priority.detail}</p>
+                </div>
+              </article>
+            ))}
+          </aside>
+        </div>
+      </section>
+    </RoleWorkspaceShell>
   );
 }
 
@@ -3109,11 +3890,14 @@ export default function Dashboard() {
   const [mailOpen, setMailOpen] = useState(false);
   const [dbUsers, setDbUsers] = useState<DbUser[]>([]);
 
-  const rawUser = window.sessionStorage.getItem("coreshieldUser");
-  const parsedUser: StoredUser | null = rawUser ? JSON.parse(rawUser) : null;
-  const user: StoredUser | null = parsedUser
-    ? { ...parsedUser, role: normalizeRole(parsedUser.role) }
-    : null;
+  const user = useMemo<StoredUser | null>(() => {
+    const rawUser = window.sessionStorage.getItem("coreshieldUser");
+    const parsedUser: StoredUser | null = rawUser ? JSON.parse(rawUser) : null;
+
+    return parsedUser
+      ? { ...parsedUser, role: normalizeRole(parsedUser.role) }
+      : null;
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -3184,6 +3968,11 @@ export default function Dashboard() {
 
   const openMailPanel = () => {
     setMailOpen(true);
+
+    if (activeRole === "SECURITY_ENGINEER") {
+      return;
+    }
+
     window.requestAnimationFrame(() => {
       document.getElementById("service-inbox")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
@@ -3222,22 +4011,24 @@ export default function Dashboard() {
   };
 
   const unreadCount =
-    activeRole === "ADMIN" ? 0 : threadsByRole[activeRole].filter((thread) => thread.unread).length;
+    activeRole === "ADMIN" ? 0 : getNonAdminThreads(activeRole).filter((thread) => thread.unread).length;
 
   return (
-    <section className="dashboard-shell">
+    <section className={classNames("dashboard-shell", activeRole === "SECURITY_ENGINEER" && "dashboard-shell-fullscreen")}>
       <div className="dashboard-backdrop" />
 
       <div className="dashboard-frame">
-        <RoleHeader
-          user={user}
-          title={roleMeta[activeRole].title}
-          subtitle={roleMeta[activeRole].subtitle}
-          onLogout={handleLogout}
-          onOpenMail={openMailPanel}
-          mailCount={unreadCount}
-          showMailAction={activeRole !== "ADMIN"}
-        />
+        {activeRole !== "SECURITY_ENGINEER" ? (
+          <RoleHeader
+            user={user}
+            title={roleMeta[activeRole].title}
+            subtitle={roleMeta[activeRole].subtitle}
+            onLogout={handleLogout}
+            onOpenMail={openMailPanel}
+            mailCount={unreadCount}
+            showMailAction={activeRole !== "ADMIN"}
+          />
+        ) : null}
 
         {user.role === "ADMIN" ? (
           <div className="role-switcher">
@@ -3269,7 +4060,10 @@ export default function Dashboard() {
         {activeRole === "MANAGER" ? <ManagerDashboard mailOpen={mailOpen} /> : null}
         {activeRole === "ANALYST" ? <AnalystDashboard mailOpen={mailOpen} /> : null}
         {activeRole === "SECURITY_ENGINEER" ? (
-          <SecurityEngineerDashboard mailOpen={mailOpen} />
+          <SecurityEngineerDashboard
+            user={user}
+            onLogout={handleLogout}
+          />
         ) : null}
         {activeRole === "AUDITOR" ? <AuditorDashboard user={user} mailOpen={mailOpen} /> : null}
       </div>

@@ -109,3 +109,64 @@ def get_all_users():
         )
         for row in rows
     ]
+
+
+def get_chat_directory():
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            SELECT id, email, role, enabled
+            FROM users
+            WHERE role <> 'ADMIN'
+              AND enabled = TRUE
+            ORDER BY role ASC, email ASC
+            """
+        )
+        rows = cursor.fetchall()
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
+
+    users = [
+        {
+            "id": row[0],
+            "email": row[1],
+            "role": row[2],
+            "enabled": row[3],
+        }
+        for row in rows
+    ]
+    groups = [
+        {
+            "id": "all-team",
+            "label": "CoreShield Team",
+            "role": None,
+            "participants": [user["email"] for user in users],
+        }
+    ]
+
+    for role in ("MANAGER", "SECURITY_ENGINEER", "ANALYST", "AUDITOR"):
+        groups.append(
+            {
+                "id": f"role-{role.lower()}",
+                "label": role.replace("_", " ").title(),
+                "role": role,
+                "participants": [
+                    user["email"]
+                    for user in users
+                    if user["role"] == role
+                ],
+            }
+        )
+
+    return {
+        "users": users,
+        "groups": groups,
+    }

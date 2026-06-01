@@ -5,7 +5,7 @@ import "./Login.css";
 
 type Role = "ADMIN" | "MANAGER" | "SECURITY_ENGINEER" | "ANALYST" | "AUDITOR";
 
-export default function Login({ language }: { language: "en" | "ro" }) {
+export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -14,41 +14,22 @@ export default function Login({ language }: { language: "en" | "ro" }) {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const copy = {
-    en: {
-      title: "Access Portal",
-      subtitle: "Identify yourself to access the engine.",
-      email: "Email Address",
-      password: "Password",
-      role: "Role",
-      admin: "Administrator",
-      manager: "Manager",
-      engineer: "Security Engineer",
-      analyst: "Analyst",
-      auditor: "Auditor",
-      authenticate: "Authenticate",
-      authenticating: "Authenticating...",
-      helper:
-        "Need to provision a new operator? Use the add-account icon above and verify with an administrator account first.",
-      back: "← Return to Homepage",
-    },
-    ro: {
-      title: "Portal de Acces",
-      subtitle: "Identifică-te pentru a intra în platformă.",
-      email: "Adresă de Email",
-      password: "Parolă",
-      role: "Rol",
-      admin: "Administrator",
-      manager: "Manager",
-      engineer: "Inginer de Securitate",
-      analyst: "Analist",
-      auditor: "Auditor",
-      authenticate: "Autentificare",
-      authenticating: "Se autentifică...",
-      helper:
-        "Vrei să creezi un operator nou? Folosește iconița de adăugare cont de mai sus și validează mai întâi un cont de administrator.",
-      back: "← Înapoi la Pagina Principală",
-    },
-  }[language];
+    title: "Access Portal",
+    subtitle: "Identify yourself to access the engine.",
+    email: "Email Address",
+    password: "Password",
+    role: "Role",
+    admin: "Administrator",
+    manager: "Manager",
+    engineer: "Security Engineer",
+    analyst: "Analyst",
+    auditor: "Auditor",
+    authenticate: "Authenticate",
+    authenticating: "Authenticating...",
+    helper:
+      "Need to provision a new operator? Use the add-account icon above and verify with an administrator account first.",
+    back: "← Return to Homepage",
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,7 +49,9 @@ export default function Login({ language }: { language: "en" | "ro" }) {
         }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({
+        detail: "The backend returned an unreadable response.",
+      }));
 
       if (!response.ok) {
         throw new Error(data.detail || "Authentication failed.");
@@ -78,7 +61,9 @@ export default function Login({ language }: { language: "en" | "ro" }) {
       navigate("/dashboard");
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
+        error instanceof TypeError
+          ? "The backend could not be reached. Make sure the API is running on port 8000."
+          : error instanceof Error
           ? error.message
           : "The backend could not be reached."
       );
