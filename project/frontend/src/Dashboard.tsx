@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Dashboard.css";
 
@@ -10,11 +10,27 @@ type StoredUser = {
   role: Role;
 };
 
-type DbUser = {
-  id: number;
-  email: string;
-  role: string;
-  enabled?: boolean;
+type AdminDbTable = {
+  name: string;
+  description: string;
+  rows: number;
+  editable: boolean;
+};
+
+type AdminDbData = {
+  table: string;
+  columns: string[];
+  editable_columns: string[];
+  insertable_columns: string[];
+  editable: boolean;
+  rows: Array<Record<string, unknown>>;
+};
+
+type AdminQueryResult = {
+  command: string;
+  affected_rows: number;
+  rows: Array<Record<string, unknown>>;
+  truncated: boolean;
 };
 
 type AlertItem = {
@@ -81,6 +97,73 @@ type AuditorReportType =
   | "risk"
   | "policy"
   | "system_controls";
+
+type AuditorReportStatus = "draft" | "review" | "approved";
+
+type AuditorReport = {
+  id: number;
+  title: string;
+  report_type: AuditorReportType;
+  description: string;
+  status: AuditorReportStatus;
+  recommendation: string;
+  owner: string;
+  updated_at: string;
+};
+
+type AuditorDashboardData = {
+  metrics: SecurityEngineerMetric[];
+  modules: SecurityEngineerModule[];
+  priorities: SecurityEngineerPriority[];
+  notifications: SecurityEngineerNotification[];
+  tasks: TaskItem[];
+  reports: AuditorReport[];
+};
+
+type ManagerReportStatus = "draft" | "review" | "approved";
+
+type ManagerReport = {
+  id: number;
+  title: string;
+  report_type: string;
+  description: string;
+  status: ManagerReportStatus;
+  recommendation: string;
+  owner: string;
+  updated_at: string;
+};
+
+type ManagerTask = TaskItem & {
+  description: string;
+  approval_status: "pending" | "approved" | "rejected";
+};
+
+type ManagerLeaveRequest = {
+  id: number;
+  employee: string;
+  request_type: string;
+  reason: string;
+  status: "pending" | "approved" | "rejected";
+  starts_on: string;
+  ends_on: string;
+};
+
+type ManagerTeamMember = {
+  id: number;
+  email: string;
+  role: Exclude<Role, "ADMIN">;
+};
+
+type ManagerDashboardData = {
+  metrics: SecurityEngineerMetric[];
+  modules: SecurityEngineerModule[];
+  priorities: SecurityEngineerPriority[];
+  notifications: SecurityEngineerNotification[];
+  tasks: ManagerTask[];
+  leave_requests: ManagerLeaveRequest[];
+  reports: ManagerReport[];
+  team: ManagerTeamMember[];
+};
 
 type TaskItem = {
   id: number;
@@ -676,33 +759,6 @@ const analystPriorities: SecurityEngineerPriority[] = [
   { title: "Build daily SOC snapshot", detail: "Summarize severity, source mix and workflow health for the shift report.", status: "testing" },
 ];
 
-const auditorReportTypes: Array<{
-  id: AuditorReportType;
-  title: string;
-  description: string;
-}> = [
-  {
-    id: "compliance",
-    title: "Compliance PDF",
-    description: "HIPAA, PCI-DSS and internal control alignment across procedures and audit evidence.",
-  },
-  {
-    id: "risk",
-    title: "Risk Assessment PDF",
-    description: "Vulnerabilities, weak controls and priority remediation recommendations for management.",
-  },
-  {
-    id: "policy",
-    title: "Policy Review PDF",
-    description: "Security policies, incident response plans and access control matrices under review.",
-  },
-  {
-    id: "system_controls",
-    title: "System Controls PDF",
-    description: "System audit of incidents, playbook executions and unauthorized access exposure.",
-  },
-];
-
 const auditorMetrics = [
   { label: "Compliance gaps", value: "4", note: "two procedural, two control-design findings" },
   { label: "Open risks", value: "7", note: "tracked across incidents, rules and privileged flows" },
@@ -710,49 +766,28 @@ const auditorMetrics = [
   { label: "Report exports", value: "6", note: "segmented by audit report type" },
 ];
 
-const auditorChartSeries = {
-  compliance: [
-    { label: "HIPAA", value: 92 },
-    { label: "PCI", value: 96 },
-    { label: "IR Plan", value: 89 },
-    { label: "Access", value: 94 },
-  ],
-  risk: [
-    { label: "Critical", value: 2 },
-    { label: "High", value: 5 },
-    { label: "Medium", value: 8 },
-    { label: "Low", value: 4 },
-  ],
-  controlCoverage: [
-    { label: "alerts", value: 93 },
-    { label: "incidents", value: 95 },
-    { label: "executions", value: 88 },
-    { label: "audit", value: 98 },
-  ],
-  reportMix: [
-    { label: "Compliance", value: 3 },
-    { label: "Risk", value: 1 },
-    { label: "Policy", value: 1 },
-    { label: "Controls", value: 1 },
-  ],
-};
+const auditorModules: SecurityEngineerModule[] = [
+  { id: "compliance", title: "Compliance Evaluations", description: "Evaluate procedures and evidence against HIPAA, PCI-DSS and internal requirements.", action: "Review compliance evidence", count: "92%", rows: [{ name: "HIPAA safeguards", detail: "Administrative and technical safeguard evidence", value: "92%" }, { name: "PCI DSS controls", detail: "Payment-data access and traceability", value: "96%" }] },
+  { id: "risk", title: "Risk Assessment & Testing", description: "Identify vulnerabilities, test controls and evaluate external or insider-threat exposure.", action: "Open risk testing desk", count: "3", rows: [{ name: "External perimeter", detail: "Network vulnerability and exposure testing", value: "2 critical" }, { name: "Insider threat paths", detail: "Privileged role and access review", value: "5 paths" }] },
+  { id: "policies", title: "Policy Review", description: "Audit security policies, incident response plans and access-control matrices.", action: "Inspect policy evidence", count: "2", rows: [{ name: "Access control matrix", detail: "Role assignment documentation", value: "update" }, { name: "Playbook governance", detail: "Automated-action approvals", value: "ready" }] },
+  { id: "systems", title: "System Auditing", description: "Examine technical controls and traceability paths that minimize unauthorized access.", action: "Inspect system controls", count: "3", rows: [{ name: "Incident traceability", detail: "Evidence linking across alerts", value: "95%" }, { name: "Execution controls", detail: "Response workflow failure review", value: "88%" }] },
+  { id: "reports", title: "Report Management", description: "Create management-ready reports, capture recommendations and move drafts toward approval.", action: "Open report manager", count: "3", rows: [{ name: "Quarterly compliance assurance", detail: "HIPAA and PCI-DSS alignment", value: "review" }, { name: "Privileged access risk assessment", detail: "Insider-threat path testing", value: "draft" }] },
+];
 
-const policyReviewItems = [
-  {
-    title: "Access control matrix",
-    detail: "Mapped against privileged role changes from `audit_logs` and operator assignments.",
-    status: "needs update",
-  },
-  {
-    title: "Incident response plan",
-    detail: "Validated against escalation paths visible in `incidents` and mailbox workflows.",
-    status: "reviewed",
-  },
-  {
-    title: "Playbook governance standard",
-    detail: "Checks `playbooks`, `playbook_steps` and `automation_rules` for approval traceability.",
-    status: "in review",
-  },
+const auditorPriorities: SecurityEngineerPriority[] = [
+  { title: "Close PCI-DSS evidence gap", detail: "Attach the missing change-approval evidence for the payment-data workflow.", status: "critical" },
+  { title: "Review privileged access exceptions", detail: "Validate five role exceptions against the access control matrix.", status: "review" },
+  { title: "Publish quarterly control report", detail: "Summarize compliance coverage, risks and management recommendations.", status: "testing" },
+];
+
+const auditorNotifications: SecurityEngineerNotification[] = [
+  { id: 201, title: "PCI-DSS evidence needs attention", detail: "One approval artifact is missing from the current audit window.", time: "12 min ago", tone: "critical" },
+  { id: 202, title: "Access review sample ready", detail: "Five privileged exceptions are ready for auditor validation.", time: "31 min ago", tone: "review" },
+];
+
+const auditorReports: AuditorReport[] = [
+  { id: 1, title: "Quarterly compliance assurance", report_type: "compliance", description: "HIPAA, PCI-DSS and internal procedure alignment.", status: "review", recommendation: "Attach missing PCI-DSS approval evidence before sign-off.", owner: "alexandru.stan@local.dev", updated_at: "Jun 02, 2026 10:00" },
+  { id: 2, title: "Privileged access risk assessment", report_type: "risk", description: "Insider-threat paths and privileged role exception testing.", status: "draft", recommendation: "Remove stale access paths and document approved exceptions.", owner: "alexandru.stan@local.dev", updated_at: "Jun 02, 2026 09:30" },
 ];
 
 const managerMetrics = [
@@ -781,6 +816,47 @@ const managerCapabilities = [
   },
 ];
 
+const managerModules: SecurityEngineerModule[] = [
+  { id: "policies", title: "Policy Development", description: "Create and supervise security protocols, procedures and emergency response plans.", action: "Review policy desk", count: "2", rows: [{ name: "Emergency response plan", detail: "Escalation and continuity procedures", value: "active" }, { name: "Physical access protocol", detail: "Visitor and restricted-zone controls", value: "review" }] },
+  { id: "personnel", title: "Personnel Management", description: "Assign work, supervise teams, approve tasks and keep training and coverage visible.", action: "Open management center", count: "3", rows: [{ name: "SOC shift coverage", detail: "Analysts, engineers and on-call supervision", value: "96%" }, { name: "Security awareness training", detail: "Quarterly workforce program", value: "88%" }] },
+  { id: "risks", title: "Risk Mitigation", description: "Assess physical security gaps and cyber exposure, then prioritize mitigation ownership.", action: "Inspect risk actions", count: "2", rows: [{ name: "Physical perimeter review", detail: "Camera blind spots and badge-reader gaps", value: "3 actions" }, { name: "Cyber exposure review", detail: "Critical remediation items", value: "6 actions" }] },
+  { id: "incidents", title: "Incident Investigation", description: "Lead breach, theft and vandalism investigations with clear escalation ownership.", action: "Open investigation desk", count: "1", rows: [{ name: "VPN brute-force cluster", detail: "Cross-team investigation and escalation", value: "lead" }] },
+  { id: "systems", title: "Systems Oversight", description: "Supervise CCTV, alarms, access control and operational security technology.", action: "Inspect security systems", count: "3", rows: [{ name: "CCTV estate", detail: "Surveillance cameras and retention", value: "12 online" }, { name: "Access control", detail: "Badge readers and privileged areas", value: "8 online" }] },
+  { id: "compliance", title: "Compliance", description: "Keep legal standards, industry regulations and internal requirements under review.", action: "Review compliance posture", count: "2", rows: [{ name: "Legal standards", detail: "Policy and evidence alignment", value: "94%" }, { name: "Industry controls", detail: "External obligation tracking", value: "91%" }] },
+  { id: "management", title: "Management Center", description: "Assign tasks, approve work and leave requests, and generate leadership reports.", action: "Open management center", count: "8", rows: [{ name: "Task approvals", detail: "Assignments waiting for decisions", value: "1" }, { name: "Leave approvals", detail: "Personnel requests awaiting review", value: "2" }, { name: "Leadership reports", detail: "Draft, review and approved reports", value: "3" }] },
+];
+
+const managerPriorities: SecurityEngineerPriority[] = [
+  { title: "Approve VPN escalation plan", detail: "Validate staffing, containment ownership and stakeholder communications.", status: "critical" },
+  { title: "Close restricted-zone badge gap", detail: "Assign the access-control remediation before the weekly review.", status: "review" },
+  { title: "Publish weekly leadership report", detail: "Summarize staffing, risks, systems oversight and compliance posture.", status: "testing" },
+];
+
+const managerNotifications: SecurityEngineerNotification[] = [
+  { id: 301, title: "Two task approvals are pending", detail: "Review cross-team assignments before their planned start time.", time: "8 min ago", tone: "critical" },
+  { id: 302, title: "Leave request requires decision", detail: "An analyst annual-leave request is ready for approval.", time: "23 min ago", tone: "review" },
+];
+
+const managerTasks: ManagerTask[] = [
+  { id: 10, title: "Validate restricted-zone badge drift", description: "Review the access exception.", priority: "high", status: "queued", approval_status: "pending", owner: "mihai.ionescu@local.dev", due: "Today, 15:00" },
+  { id: 11, title: "Patch CCTV retention policy exception", description: "Publish corrected configuration.", priority: "medium", status: "in_progress", approval_status: "approved", owner: "anca.popescu@local.dev", due: "Tomorrow, 10:00" },
+];
+
+const managerLeaveRequests: ManagerLeaveRequest[] = [
+  { id: 1, employee: "mihai.ionescu@local.dev", request_type: "annual_leave", reason: "Planned annual leave", status: "pending", starts_on: "Jun 10, 2026", ends_on: "Jun 12, 2026" },
+];
+
+const managerReports: ManagerReport[] = [
+  { id: 1, title: "Weekly security leadership snapshot", report_type: "leadership", description: "Staffing, risk actions, systems posture and incident leadership summary.", status: "review", recommendation: "Approve the physical access remediation owner before distribution.", owner: "manager.soc@local.dev", updated_at: "Jun 02, 2026 10:00" },
+];
+
+const managerTeam: ManagerTeamMember[] = [
+  { id: 1, email: "manager.soc@local.dev", role: "MANAGER" },
+  { id: 2, email: "mihai.ionescu@local.dev", role: "ANALYST" },
+  { id: 3, email: "anca.popescu@local.dev", role: "SECURITY_ENGINEER" },
+  { id: 4, email: "alexandru.stan@local.dev", role: "AUDITOR" },
+];
+
 const managerChartSeries = {
   staffing: [
     { label: "Analysts", value: 8 },
@@ -801,76 +877,6 @@ const managerChartSeries = {
     { label: "Training", value: 88 },
   ],
 };
-
-const adminMetrics = [
-  { label: "Global modules", value: "5", note: "admin can inspect and adjust every role workspace" },
-  { label: "Privileged tables", value: "9", note: "direct visibility across operational and governance data" },
-  { label: "Automation controls", value: "18", note: "rules, playbooks and thresholds editable from one place" },
-  { label: "Live operators", value: "26", note: "accounts, roles and access state under central control" },
-];
-
-const adminCapabilities = [
-  {
-    title: "Cross-role control",
-    detail: "Preview, tune and govern dashboards and workflows for analyst, engineer, manager and auditor.",
-  },
-  {
-    title: "DB visibility",
-    detail: "Inspect core tables, relations and operational state directly inside the admin surface.",
-  },
-  {
-    title: "Direct maintenance",
-    detail: "Edit thresholds, account state, rule behavior and privileged settings without leaving the app.",
-  },
-  {
-    title: "Platform governance",
-    detail: "Track risky changes, system health and role-wide capability exposure from a single command layer.",
-  },
-];
-
-const adminDbTables = [
-  { name: "alerts", description: "raw security telemetry intake", rows: 214, mode: "inspect" },
-  { name: "incidents", description: "confirmed and in-progress cases", rows: 57, mode: "edit" },
-  { name: "incident_alerts", description: "alert-to-incident many-to-many graph", rows: 184, mode: "relations" },
-  { name: "playbooks", description: "automation definitions and control flows", rows: 12, mode: "govern" },
-  { name: "playbook_steps", description: "step-level response actions and configs", rows: 41, mode: "edit" },
-  { name: "playbook_executions", description: "runtime orchestration history", rows: 96, mode: "inspect" },
-  { name: "execution_logs", description: "debug detail for each execution path", rows: 322, mode: "trace" },
-  { name: "audit_logs", description: "append-only privileged activity trail", rows: 148, mode: "review" },
-  { name: "automation_rules", description: "conditions and automated actions", rows: 9, mode: "edit" },
-];
-
-const adminRoleMatrix = [
-  { role: "Analyst", control: "Investigations, alert triage, evidence actions" },
-  { role: "Security Engineer", control: "Playbooks, steps, automation rules, execution logic" },
-  { role: "Manager", control: "Policies, staffing, escalations, system oversight" },
-  { role: "Auditor", control: "Reports, compliance lanes, audit exports" },
-];
-
-const adminDbPreview = `UPDATE automation_rules
-SET enabled = TRUE,
-    action = 'Create incident and attach containment playbook'
-WHERE id = 91;
-
-UPDATE users
-SET enabled = FALSE
-WHERE email = 'operator@local.dev';`;
-
-const quickStats = [
-  { label: "Alerts today", value: "146", accent: "cyan" },
-  { label: "Open incidents", value: "12", accent: "amber" },
-  { label: "Auto-contained", value: "8", accent: "emerald" },
-  { label: "Failed runs", value: "2", accent: "rose" },
-];
-
-const metricTrend = [
-  { label: "Mon", value: 42 },
-  { label: "Tue", value: 58 },
-  { label: "Wed", value: 31 },
-  { label: "Thu", value: 77 },
-  { label: "Fri", value: 65 },
-  { label: "Sat", value: 28 },
-];
 
 const tasksByRole: Record<Exclude<Role, "ADMIN">, TaskItem[]> = {
   MANAGER: [
@@ -1484,7 +1490,7 @@ function generateAuditPdf(user: StoredUser | null, reportType: AuditorReportType
       </head>
       <body>
         <h1>CoreShield ${selectedReport.title}</h1>
-        <p>Generated on 2026-04-15 by ${user?.email ?? "unknown user"}.</p>
+        <p>Generated on ${new Date().toLocaleString()} by ${user?.email ?? "unknown user"}.</p>
         <p>${selectedReport.subtitle}</p>
         <div class="meta">
           <div class="card"><strong>${selectedReport.cards[0]}</strong></div>
@@ -1511,67 +1517,6 @@ function generateAuditPdf(user: StoredUser | null, reportType: AuditorReportType
   printWindow.document.close();
   printWindow.focus();
   printWindow.print();
-}
-
-function RoleHeader({
-  user,
-  title,
-  subtitle,
-  onLogout,
-  onOpenMail,
-  mailCount,
-  showMailAction,
-}: {
-  user: StoredUser;
-  title: string;
-  subtitle: string;
-  onLogout: () => void;
-  onOpenMail: () => void;
-  mailCount: number;
-  showMailAction: boolean;
-}) {
-  return (
-    <header className="dashboard-hero">
-      <div>
-        <p className="dashboard-kicker">CoreShield Control Layer</p>
-        <h1>{title}</h1>
-        <p className="dashboard-subtitle">{subtitle}</p>
-      </div>
-
-      <div className="hero-actions">
-        <div className="identity-card">
-          <span className="identity-label">Signed in as</span>
-          <strong>{user.email}</strong>
-          <span className="identity-role">{formatRole(user.role)}</span>
-        </div>
-
-        {showMailAction ? (
-          <button type="button" className="mail-icon-button" onClick={onOpenMail} aria-label="Open service inbox">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.9"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" />
-              <path d="m22 6-10 7L2 6" />
-            </svg>
-            <span>Inbox</span>
-            <small>{mailCount}</small>
-          </button>
-        ) : null}
-
-        <button type="button" className="ghost-button" onClick={onLogout}>
-          Logout
-        </button>
-      </div>
-    </header>
-  );
 }
 
 function NonAdminWorkspace({
@@ -1824,281 +1769,361 @@ function NonAdminWorkspace({
   );
 }
 
-function AdminDashboard({ users }: { users: DbUser[] }) {
+function AdminDatabaseExplorer({ adminEmail }: { adminEmail: string }) {
+  const [adminPassword, setAdminPassword] = useState("");
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [tables, setTables] = useState<AdminDbTable[]>([]);
+  const [selectedTable, setSelectedTable] = useState("");
+  const [tableData, setTableData] = useState<AdminDbData | null>(null);
+  const [drafts, setDrafts] = useState<Record<number, string>>({});
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [newRowDraft, setNewRowDraft] = useState("{}");
+  const [query, setQuery] = useState("SELECT id, email, role, enabled FROM users ORDER BY id;");
+  const [queryResult, setQueryResult] = useState<AdminQueryResult | null>(null);
+
+  const request = async (path: string, options: RequestInit = {}) => {
+    const response = await fetch(`http://localhost:8000/admin/database/${path}`, {
+      ...options,
+      headers: { "Content-Type": "application/json", ...options.headers },
+    });
+    const data = await response.json().catch(() => ({ detail: "The backend returned an unreadable response." }));
+
+    if (!response.ok) {
+      throw new Error(data.detail || "The administrative request failed.");
+    }
+
+    return data;
+  };
+
+  const credentials = {
+    admin_email: adminEmail,
+    admin_password: adminPassword,
+  };
+
+  const loadTables = async () => {
+    const data = await request("tables", {
+      method: "POST",
+      body: JSON.stringify(credentials),
+    }) as { tables: AdminDbTable[] };
+    setTables(data.tables);
+    return data.tables;
+  };
+
+  const loadTable = async (table: string) => {
+    setIsLoading(true);
+    setError("");
+    try {
+      const data = await request("rows", {
+        method: "POST",
+        body: JSON.stringify({ ...credentials, table }),
+      }) as AdminDbData;
+      setSelectedTable(table);
+      setTableData(data);
+      setDrafts({});
+      setNewRowDraft(JSON.stringify(
+        Object.fromEntries(data.insertable_columns.map((column) => [column, ""])),
+        null,
+        2
+      ));
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Could not load table data.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const unlock = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setIsLoading(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const tables = await loadTables();
+      setIsUnlocked(true);
+      setMessage("Privileged database mode unlocked for this page session.");
+      if (tables.length) {
+        await loadTable(tables[0].name);
+      }
+    } catch (unlockError) {
+      setError(unlockError instanceof Error ? unlockError.message : "Could not unlock admin mode.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const editableDraft = (row: Record<string, unknown>) => Object.fromEntries(
+    Object.entries(row).filter(([column]) => tableData?.editable_columns.includes(column))
+  );
+
+  const updateRow = async (row: Record<string, unknown>) => {
+    const rowId = Number(row.id);
+    setError("");
+    setMessage("");
+
+    try {
+      const changes = JSON.parse(drafts[rowId] ?? JSON.stringify(editableDraft(row)));
+      await request("rows", {
+        method: "PATCH",
+        body: JSON.stringify({ ...credentials, table: selectedTable, row_id: rowId, changes }),
+      });
+      setMessage(`Row #${rowId} updated in ${selectedTable}.`);
+      await loadTable(selectedTable);
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : "Could not update the selected row.");
+    }
+  };
+
+  const createRow = async () => {
+    setError("");
+    setMessage("");
+
+    try {
+      const values = JSON.parse(newRowDraft);
+      await request("rows/create", {
+        method: "POST",
+        body: JSON.stringify({ ...credentials, table: selectedTable, values }),
+      });
+      setMessage(`New row added to ${selectedTable}.`);
+      await loadTables();
+      await loadTable(selectedTable);
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : "Could not add the row.");
+    }
+  };
+
+  const deleteRow = async (row: Record<string, unknown>) => {
+    const rowId = Number(row.id);
+    if (!window.confirm(`Delete row #${rowId} from ${selectedTable}? This action cannot be undone.`)) {
+      return;
+    }
+
+    setError("");
+    setMessage("");
+    try {
+      await request("rows/delete", {
+        method: "POST",
+        body: JSON.stringify({ ...credentials, table: selectedTable, row_id: rowId }),
+      });
+      setMessage(`Row #${rowId} deleted from ${selectedTable}.`);
+      await loadTables();
+      await loadTable(selectedTable);
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Could not delete the selected row.");
+    }
+  };
+
+  const runQuery = async () => {
+    const command = query.trim().split(/\s+/, 1)[0]?.toUpperCase();
+    const isReadOnlyQuery = command === "SELECT"
+      || (command === "WITH" && !/\b(INSERT|UPDATE|DELETE)\b/i.test(query));
+    if (!isReadOnlyQuery && !window.confirm("Run this write query against the database?")) {
+      return;
+    }
+
+    setError("");
+    setMessage("");
+    try {
+      const result = await request("query", {
+        method: "POST",
+        body: JSON.stringify({ ...credentials, query }),
+      }) as AdminQueryResult;
+      setQueryResult(result);
+      setMessage(`${result.command} completed. ${result.affected_rows} row(s) reported by PostgreSQL.`);
+      await loadTables();
+      if (selectedTable) {
+        await loadTable(selectedTable);
+      }
+    } catch (queryError) {
+      setError(queryError instanceof Error ? queryError.message : "Could not execute query.");
+    }
+  };
+
+  const lockExplorer = () => {
+    setAdminPassword("");
+    setIsUnlocked(false);
+    setTables([]);
+    setSelectedTable("");
+    setTableData(null);
+    setDrafts({});
+    setQueryResult(null);
+    setMessage("");
+    setError("");
+  };
+
+  if (!isUnlocked) {
+    return (
+      <form className="admin-unlock-card" onSubmit={unlock}>
+        <span className="eyebrow tone-cyan">Protected access</span>
+        <h3>Unlock database explorer</h3>
+        <p>Confirm your administrator password to inspect and maintain approved tables. The password stays in page memory only.</p>
+        <input
+          type="password"
+          className="admin-db-input"
+          value={adminPassword}
+          onChange={(event) => setAdminPassword(event.target.value)}
+          placeholder="Administrator password"
+          autoComplete="current-password"
+          required
+        />
+        <button type="submit" className="primary-button" disabled={isLoading}>
+          {isLoading ? "Verifying..." : "Unlock explorer"}
+        </button>
+        {error ? <p className="admin-db-error">{error}</p> : null}
+      </form>
+    );
+  }
+
+  return (
+    <div className="admin-explorer">
+      <div className="admin-db-sidebar">
+        <div className="section-heading">
+          <h3>Database tables</h3>
+          <span>{tables.length} live tables</span>
+        </div>
+        <div className="table-list">
+          {tables.map((table) => (
+            <button
+              key={table.name}
+              type="button"
+              className={classNames("admin-table-button", selectedTable === table.name && "active")}
+              onClick={() => loadTable(table.name)}
+            >
+              <strong>{table.name}</strong>
+              <span>{table.rows} rows • {table.editable ? "edit + delete" : "inspect only"}</span>
+              <small>{table.description}</small>
+            </button>
+          ))}
+        </div>
+        <button type="button" className="ghost-button admin-lock-button" onClick={lockExplorer}>
+          Lock explorer
+        </button>
+      </div>
+
+      <div className="admin-db-workspace">
+        <div className="panel-heading">
+          <div>
+            <span className="eyebrow tone-cyan">Live table editor</span>
+            <h3>{selectedTable || "Select a table"}</h3>
+          </div>
+          <button type="button" className="ghost-button" onClick={() => loadTable(selectedTable)} disabled={!selectedTable || isLoading}>
+            Refresh
+          </button>
+        </div>
+
+        {message ? <p className="admin-db-success">{message}</p> : null}
+        {error ? <p className="admin-db-error">{error}</p> : null}
+        {isLoading ? <div className="security-empty-state">Loading database rows...</div> : null}
+
+        {!isLoading && tableData ? (
+          <div className="admin-table-content">
+            {tableData.editable ? (
+              <div className="admin-create-card">
+                <div>
+                  <strong>Add row</strong>
+                  <span>Complete the JSON fields required by `{selectedTable}`.</span>
+                </div>
+                <textarea
+                  className="admin-json-editor"
+                  value={newRowDraft}
+                  onChange={(event) => setNewRowDraft(event.target.value)}
+                  aria-label={`New row JSON for ${selectedTable}`}
+                />
+                <button type="button" className="primary-button" onClick={createRow}>Add row</button>
+              </div>
+            ) : null}
+
+            <div className="admin-row-list">
+              {tableData.rows.map((row, index) => {
+                const rowId = Number(row.id);
+                const hasEditableId = Number.isFinite(rowId);
+                return (
+                  <article key={hasEditableId ? rowId : index} className="admin-row-card">
+                    <div className="admin-row-summary">
+                      <strong>{hasEditableId ? `#${rowId}` : `Row ${index + 1}`}</strong>
+                      <code>{JSON.stringify(row)}</code>
+                    </div>
+                    {tableData.editable && hasEditableId ? (
+                      <>
+                        <textarea
+                          className="admin-json-editor"
+                          value={drafts[rowId] ?? JSON.stringify(editableDraft(row), null, 2)}
+                          onChange={(event) => setDrafts((current) => ({ ...current, [rowId]: event.target.value }))}
+                          aria-label={`Editable JSON for row ${rowId}`}
+                        />
+                        <div className="row-actions">
+                          <button type="button" className="mini-button" onClick={() => updateRow(row)}>Save changes</button>
+                          <button type="button" className="mini-button danger-button" onClick={() => deleteRow(row)}>Delete row</button>
+                        </div>
+                      </>
+                    ) : (
+                      <span className="status-pill neutral">inspect only</span>
+                    )}
+                  </article>
+                );
+              })}
+              {!tableData.rows.length ? <div className="security-empty-state">This table is empty.</div> : null}
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      <section className="admin-query-console">
+        <div className="section-heading">
+          <h3>SQL query console</h3>
+          <span>one SELECT, INSERT, UPDATE, DELETE or WITH query at a time</span>
+        </div>
+        <textarea
+          className="admin-json-editor admin-query-editor"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          aria-label="SQL query"
+        />
+        <div className="row-actions">
+          <button type="button" className="primary-button" onClick={runQuery}>Run query</button>
+          <span className="admin-query-note">Write queries require confirmation. DDL commands are blocked.</span>
+        </div>
+        {queryResult ? (
+          <div className="admin-query-result">
+            <strong>{queryResult.command} result</strong>
+            <span>{queryResult.affected_rows} row(s) reported{queryResult.truncated ? " • first 200 displayed" : ""}</span>
+            <pre><code>{JSON.stringify(queryResult.rows, null, 2)}</code></pre>
+          </div>
+        ) : null}
+      </section>
+    </div>
+  );
+}
+
+function AdminDashboard({ user }: { user: StoredUser }) {
   return (
     <div className="dashboard-grid">
       <section className="dashboard-card span-12 admin-shell">
         <div className="panel-heading">
           <div>
             <span className="eyebrow tone-cyan">Administrator workspace</span>
-            <h2>Full platform control over every role, workflow, table and privileged system action</h2>
-          </div>
-          <div className="button-row">
-            <a href="#admin-control" className="ghost-button">Control</a>
-            <a href="#admin-database" className="ghost-button">Database</a>
-            <a href="#admin-maintenance" className="ghost-button">Maintenance</a>
-          </div>
-        </div>
-
-        <div className="security-summary-grid">
-          {adminMetrics.map((item) => (
-            <article key={item.label} className="security-summary-card">
-              <span>{item.label}</span>
-              <strong>{item.value}</strong>
-              <p>{item.note}</p>
-            </article>
-          ))}
-        </div>
-
-        <div className="analyst-capability-grid">
-          {adminCapabilities.map((capability) => (
-            <article key={capability.title} className="security-mission-card">
-              <strong>{capability.title}</strong>
-              <p>{capability.detail}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="dashboard-card hero-panel span-8" id="admin-control">
-        <div className="panel-heading">
-          <div>
-            <span className="eyebrow tone-cyan">System overview</span>
-            <h2>Administrator command center</h2>
+            <h2>Database administration and direct SQL access</h2>
             <p className="dashboard-subtitle security-panel-copy">
-              The administrator can inspect and modify every role experience, platform workflow, system threshold and privileged data path from one control surface.
+              Inspect tables, add records, update operational data, remove rows and run controlled SQL queries from one protected workspace.
             </p>
           </div>
-          <button type="button" className="primary-button">
-            Open system config
-          </button>
-        </div>
-
-        <div className="stats-grid">
-          {quickStats.map((item) => (
-            <article key={item.label} className="stat-card">
-              <span>{item.label}</span>
-              <strong>{item.value}</strong>
-              <small className={`tone-${item.accent}`}>live telemetry</small>
-            </article>
-          ))}
-        </div>
-
-        <div className="dashboard-split">
-          <div>
-            <div className="section-heading">
-              <h3>ML thresholds & fallback rules</h3>
-              <span>Editable control plane</span>
-            </div>
-
-            <div className="config-stack">
-              <label className="config-row">
-                <span>Critical auto-create threshold</span>
-                <input type="range" min="60" max="99" defaultValue="87" />
-                <strong>0.87</strong>
-              </label>
-              <label className="config-row">
-                <span>Medium severity analyst review</span>
-                <input type="range" min="20" max="90" defaultValue="55" />
-                <strong>0.55</strong>
-              </label>
-              <label className="toggle-row">
-                <span>Enable rule fallback when ML is uncertain</span>
-                <button type="button" className="toggle-chip active">
-                  Enabled
-                </button>
-              </label>
-              <label className="toggle-row">
-                <span>Allow direct DB maintenance mode</span>
-                <button type="button" className="toggle-chip active">
-                  Full access
-                </button>
-              </label>
-            </div>
-          </div>
-
-          <div>
-            <div className="section-heading">
-              <h3>Weekly control signals</h3>
-              <span>alerts, incidents, automation</span>
-            </div>
-            {renderMiniBars(metricTrend, "cyan")}
-          </div>
         </div>
       </section>
 
-      <section className="dashboard-card span-4">
-        <div className="section-heading">
-          <h3>Cross-role control</h3>
-          <span>what admin can alter for everyone</span>
-        </div>
-
-        <div className="table-list compact-list">
-          {adminRoleMatrix.map((entry) => (
-            <div key={entry.role} className="table-row">
-              <div>
-                <strong>{entry.role}</strong>
-                <span>{entry.control}</span>
-              </div>
-              <div className="row-actions">
-                <span className="status-pill neutral">full access</span>
-                <button type="button" className="mini-button">
-                  Modify
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="dashboard-card span-12">
-        <div className="section-heading">
-          <h3>User and privilege management</h3>
-          <span>live control over accounts, roles and account state</span>
-        </div>
-
-        <div className="table-list">
-          {users.map((entry) => (
-            <div key={entry.id} className="table-row">
-              <div>
-                <strong>{entry.email}</strong>
-                <span>{formatRole(normalizeRole(entry.role))} • {entry.enabled === false ? "disabled" : "active"}</span>
-              </div>
-              <div className="row-actions">
-                <button type="button" className="mini-button">
-                  Edit role
-                </button>
-                <button type="button" className="mini-button">
-                  Toggle access
-                </button>
-                <button type="button" className="mini-button">
-                  Open account
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="dashboard-card span-6">
-        <div className="section-heading">
-          <h3>Playbooks under governance</h3>
-          <span>automation catalog</span>
-        </div>
-
-        <div className="table-list">
-          {playbooks.map((playbook) => (
-            <div key={playbook.id} className="table-row">
-              <div>
-                <strong>{playbook.name}</strong>
-                <span>{playbook.description}</span>
-              </div>
-              <div className="row-metrics">
-                <span>{playbook.runs} runs</span>
-                <span>{playbook.successRate}% success</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="dashboard-card span-6">
-        <div className="section-heading">
-          <h3>Audit highlights</h3>
-          <span>high-risk administrative changes</span>
-        </div>
-        <div className="timeline">
-          {auditLogs.map((log) => (
-            <article key={log.id} className="timeline-item">
-              <span className="timeline-time">{log.timestamp}</span>
-              <div>
-                <strong>{log.action}</strong>
-                <p>{log.details}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="dashboard-card span-8" id="admin-database">
+      <section className="dashboard-card span-12" id="admin-database">
         <div className="section-heading">
           <h3>Database control surface</h3>
-          <span>schema visibility, direct edits and privileged maintenance</span>
+          <span>live tables, CRUD operations and SQL console</span>
         </div>
-        <div className="stats-grid">
-          <article className="stat-card">
-            <span>Tracked tables</span>
-            <strong>9</strong>
-            <small className="tone-cyan">core operational and governance tables</small>
-          </article>
-          <article className="stat-card">
-            <span>DB sessions</span>
-            <strong>14</strong>
-            <small className="tone-amber">2 elevated</small>
-          </article>
-          <article className="stat-card">
-            <span>Slow queries</span>
-            <strong>3</strong>
-            <small className="tone-rose">needs tuning</small>
-          </article>
-          <article className="stat-card">
-            <span>Last backup</span>
-            <strong>02:00</strong>
-            <small className="tone-emerald">verified</small>
-          </article>
-        </div>
-
-        <div className="admin-db-layout">
-          <div className="table-list">
-            {adminDbTables.map((table) => (
-              <div key={table.name} className="table-row">
-                <div>
-                  <strong>{table.name}</strong>
-                  <span>{table.description}</span>
-                </div>
-                <div className="row-metrics">
-                  <span>{table.rows} rows</span>
-                  <button type="button" className="mini-button">{table.mode}</button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="code-editor-card">
-            <div className="code-editor-topline">
-              <strong>Direct DB patch console</strong>
-              <span>privileged admin mode</span>
-            </div>
-            <pre className="code-editor-preview">
-              <code>{adminDbPreview}</code>
-            </pre>
-            <div className="code-lab-footer">
-              <span>Targets: `automation_rules`, `users`</span>
-              <span>Audit trail required</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="dashboard-card span-4" id="admin-maintenance">
-        <div className="section-heading">
-          <h3>Privileged actions</h3>
-          <span>absolute control plane</span>
-        </div>
-        <div className="action-grid">
-          <button type="button" className="action-tile">Open DB explorer</button>
-          <button type="button" className="action-tile">Edit any dashboard</button>
-          <button type="button" className="action-tile">Rotate service secrets</button>
-          <button type="button" className="action-tile">Force-disable account</button>
-          <button type="button" className="action-tile">Rebuild ML ruleset</button>
-          <button type="button" className="action-tile">Override automation rule</button>
-        </div>
+        <AdminDatabaseExplorer adminEmail={user.email} />
       </section>
     </div>
   );
 }
 
-function ManagerDashboard({ mailOpen }: { mailOpen: boolean }) {
+function LegacyManagerDashboard({ mailOpen }: { mailOpen: boolean }) {
   const managerTasks = tasksByRole.MANAGER;
 
   return (
@@ -2318,6 +2343,8 @@ function ManagerDashboard({ mailOpen }: { mailOpen: boolean }) {
     </div>
   );
 }
+
+void LegacyManagerDashboard;
 
 function AnalystDashboard({
   mailOpen,
@@ -2744,6 +2771,60 @@ function WorkspaceIcon({ name }: { name: string }) {
         <path d="M10.3 4.7 3.6 17a2 2 0 0 0 1.8 3h13.2a2 2 0 0 0 1.8-3L13.7 4.7a2 2 0 0 0-3.4 0Z" />
       </>
     ),
+    risk: (
+      <>
+        <path d="M12 3 4 7v5c0 4.4 3.2 7.5 8 9 4.8-1.5 8-4.6 8-9V7z" />
+        <path d="M12 8v4" />
+        <path d="M12 16h.01" />
+      </>
+    ),
+    policies: (
+      <>
+        <path d="M6 3h9l3 3v15H6z" />
+        <path d="M14 3v4h4" />
+        <path d="M9 12h6" />
+        <path d="M9 16h6" />
+      </>
+    ),
+    personnel: (
+      <>
+        <circle cx="9" cy="8" r="3" />
+        <circle cx="17" cy="9" r="2" />
+        <path d="M3 20c0-3 2.7-5 6-5s6 2 6 5" />
+        <path d="M15 15c3 0 5 1.8 5 4" />
+      </>
+    ),
+    incidents: (
+      <>
+        <path d="M12 3 4 7v5c0 4.4 3.2 7.5 8 9 4.8-1.5 8-4.6 8-9V7z" />
+        <path d="M12 8v4" />
+        <path d="M12 16h.01" />
+      </>
+    ),
+    management: (
+      <>
+        <path d="M5 4h14v16H5z" />
+        <path d="M9 4V2h6v2" />
+        <path d="m8 11 2 2 5-5" />
+        <path d="M8 17h8" />
+      </>
+    ),
+    systems: (
+      <>
+        <rect x="3" y="4" width="18" height="13" rx="2" />
+        <path d="M8 21h8" />
+        <path d="M12 17v4" />
+        <path d="m8 10 2 2 5-5" />
+      </>
+    ),
+    reports: (
+      <>
+        <path d="M5 3h14v18H5z" />
+        <path d="M9 8h6" />
+        <path d="M9 12h6" />
+        <path d="M9 16h4" />
+      </>
+    ),
     inbox: (
       <>
         <path d="M4 4h16v16H4z" />
@@ -2928,28 +3009,6 @@ function RoleWorkspaceShell({
   );
 }
 
-function buildDirectoryGroupConversations(groups: ChatDirectoryGroup[]): ChatConversation[] {
-  return groups.map((group) => ({
-    id: `group-${group.id}`,
-    kind: "group",
-    subject: group.role ? `${group.label} Group` : group.label,
-    participants: group.participants,
-    preview: group.role
-      ? `Role channel for ${group.participants.length} ${group.label.toLowerCase()} members.`
-      : `Shared channel for ${group.participants.length} CoreShield team members.`,
-    unread: false,
-    messages: [
-      {
-        sender: "CoreShield",
-        timestamp: "Now",
-        body: group.role
-          ? `This group includes every active ${group.label.toLowerCase()} account from the users table.`
-          : "This group includes every active non-admin account from the users table.",
-      },
-    ],
-  }));
-}
-
 type ChatComposerMode = "direct" | "group";
 
 function SecurityEngineerChatDrawer({
@@ -2963,14 +3022,15 @@ function SecurityEngineerChatDrawer({
   isLoading: boolean;
   errorMessage: string;
 }) {
-  const [conversations, setConversations] = useState<ChatConversation[]>(() => buildDirectoryGroupConversations(directory.groups));
-  const [activeThreadId, setActiveThreadId] = useState(() => conversations[0]?.id ?? "");
+  const [conversations, setConversations] = useState<ChatConversation[]>([]);
+  const [activeThreadId, setActiveThreadId] = useState("");
   const [draftReply, setDraftReply] = useState("");
   const [isContactPickerOpen, setIsContactPickerOpen] = useState(false);
   const [composerMode, setComposerMode] = useState<ChatComposerMode>("direct");
   const [contactSearch, setContactSearch] = useState("");
   const [groupName, setGroupName] = useState("");
   const [selectedContactIds, setSelectedContactIds] = useState<number[]>([]);
+  const [chatApiError, setChatApiError] = useState("");
   const activeThread = conversations.find((thread) => thread.id === activeThreadId) ?? conversations[0];
   const normalizedContactSearch = contactSearch.trim().toLowerCase();
   const availableContacts = directory.users.filter((user) => (
@@ -2978,54 +3038,76 @@ function SecurityEngineerChatDrawer({
     && user.email.toLowerCase().includes(normalizedContactSearch)
   ));
 
-  const sendReply = () => {
+  const loadConversations = useCallback(async (preferredThreadId = "") => {
+    setChatApiError("");
+    try {
+      const response = await fetch(`http://localhost:8000/chat/threads?user_email=${encodeURIComponent(currentUserEmail)}`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Could not load persistent conversations.");
+      const threads: ChatConversation[] = data.conversations ?? [];
+      setConversations(threads);
+      setActiveThreadId((current) => preferredThreadId || (threads.some((thread) => thread.id === current) ? current : threads[0]?.id ?? ""));
+    } catch (error) {
+      setChatApiError(error instanceof Error ? error.message : "Could not load persistent conversations.");
+    }
+  }, [currentUserEmail]);
+
+  useEffect(() => {
+    loadConversations();
+  }, [loadConversations]);
+
+  const sendReply = async () => {
     const reply = draftReply.trim();
 
     if (!reply || !activeThread) {
       return;
     }
 
-    setConversations((current) => current.map((conversation) => (
-      conversation.id === activeThread.id
-        ? {
-            ...conversation,
-            preview: reply,
-            messages: [
-              ...conversation.messages,
-              {
-                sender: currentUserEmail,
-                timestamp: "Now",
-                body: reply,
-              },
-            ],
-          }
-        : conversation
-    )));
-    setDraftReply("");
+    try {
+      const response = await fetch(`http://localhost:8000/chat/threads/${activeThread.id}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sender_email: currentUserEmail, body: reply }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Could not save the chat message.");
+      setDraftReply("");
+      await loadConversations(activeThread.id);
+    } catch (error) {
+      setChatApiError(error instanceof Error ? error.message : "Could not save the chat message.");
+    }
   };
 
-  const startDirectConversation = (contact: ChatDirectoryUser) => {
-    const conversationId = `direct-${contact.id}`;
-    const existingConversation = conversations.find((conversation) => conversation.id === conversationId);
+  const createConversation = async (subject: string, participantEmails: string[]) => {
+    const response = await fetch("http://localhost:8000/chat/threads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ subject, creator_email: currentUserEmail, participant_emails: participantEmails }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || "Could not create the conversation.");
+    await loadConversations(data.id);
+  };
 
-    if (!existingConversation) {
-      setConversations((current) => [
-        ...current,
-        {
-          id: conversationId,
-          kind: "direct",
-          subject: contact.email,
-          participants: [currentUserEmail, contact.email],
-          preview: `Start a new conversation with ${contact.email}.`,
-          unread: false,
-          messages: [],
-        },
-      ]);
+  const startDirectConversation = async (contact: ChatDirectoryUser) => {
+    const existingConversation = conversations.find((conversation) => (
+      conversation.kind === "direct"
+      && conversation.participants.length === 2
+      && conversation.participants.includes(currentUserEmail)
+      && conversation.participants.includes(contact.email)
+    ));
+
+    try {
+      if (existingConversation) {
+        setActiveThreadId(existingConversation.id);
+      } else {
+        await createConversation(contact.email, [contact.email]);
+      }
+      setIsContactPickerOpen(false);
+      setContactSearch("");
+    } catch (error) {
+      setChatApiError(error instanceof Error ? error.message : "Could not create the direct conversation.");
     }
-
-    setActiveThreadId(conversationId);
-    setIsContactPickerOpen(false);
-    setContactSearch("");
   };
 
   const toggleGroupContact = (contactId: number) => {
@@ -3036,7 +3118,7 @@ function SecurityEngineerChatDrawer({
     ));
   };
 
-  const createGroupConversation = () => {
+  const createGroupConversation = async () => {
     const selectedContacts = directory.users.filter((user) => selectedContactIds.includes(user.id));
     const normalizedGroupName = groupName.trim();
 
@@ -3044,27 +3126,16 @@ function SecurityEngineerChatDrawer({
       return;
     }
 
-    const conversationId = `custom-group-${Date.now()}`;
-    const participants = Array.from(new Set([currentUserEmail, ...selectedContacts.map((contact) => contact.email)]));
-
-    setConversations((current) => [
-      ...current,
-      {
-        id: conversationId,
-        kind: "group",
-        subject: normalizedGroupName,
-        participants,
-        preview: `New group with ${participants.length} participants.`,
-        unread: false,
-        messages: [],
-      },
-    ]);
-    setActiveThreadId(conversationId);
-    setIsContactPickerOpen(false);
-    setComposerMode("direct");
-    setContactSearch("");
-    setGroupName("");
-    setSelectedContactIds([]);
+    try {
+      await createConversation(normalizedGroupName, selectedContacts.map((contact) => contact.email));
+      setIsContactPickerOpen(false);
+      setComposerMode("direct");
+      setContactSearch("");
+      setGroupName("");
+      setSelectedContactIds([]);
+    } catch (error) {
+      setChatApiError(error instanceof Error ? error.message : "Could not create the group conversation.");
+    }
   };
 
   return (
@@ -3136,6 +3207,7 @@ function SecurityEngineerChatDrawer({
 
         {isLoading ? <div className="security-empty-state">Loading teammates from users...</div> : null}
         {errorMessage ? <div className="security-chat-error">{errorMessage}</div> : null}
+        {chatApiError ? <div className="security-chat-error">{chatApiError}</div> : null}
 
         <div className="security-drawer-list">
           {conversations.map((thread) => (
@@ -4308,254 +4380,585 @@ function SecurityEngineerDashboard({
   );
 }
 
-function AuditorDashboard({
-  user,
-  mailOpen,
+function generateManagerPdf(report: ManagerReport) {
+  const printWindow = window.open("", "_blank", "width=1080,height=900");
+  if (!printWindow) {
+    window.alert("Browser-ul a blocat fereastra pentru raportul PDF.");
+    return;
+  }
+  printWindow.document.write(`
+    <!doctype html><html><head><title>${report.title}</title>
+    <style>body{font-family:Arial,sans-serif;padding:42px;color:#172033}h1{margin-bottom:8px}small{color:#657086}.card{margin-top:22px;padding:18px;border:1px solid #d8deea;border-radius:12px}strong{display:block;margin-bottom:7px}</style>
+    </head><body><small>CoreShield management report · ${new Date().toLocaleString()}</small><h1>${report.title}</h1>
+    <p>Type: ${report.report_type} · Status: ${report.status}</p>
+    <div class="card"><strong>Executive summary</strong>${report.description}</div>
+    <div class="card"><strong>Management recommendation</strong>${report.recommendation || "No recommendation added yet."}</div>
+    </body></html>
+  `);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+}
+
+function ManagerControlCenter({
+  data,
+  onCreateTask,
+  onApproveTask,
+  onApproveLeave,
+  onCreateReport,
+  onUpdateReport,
+  onDeleteReport,
+  onClose,
 }: {
-  user: StoredUser;
-  mailOpen: boolean;
+  data: ManagerDashboardData;
+  onCreateTask: (values: { title: string; description: string; priority: string; assignee_email: string; due_at: string }) => Promise<void>;
+  onApproveTask: (taskId: number, approval_status: "approved" | "rejected") => Promise<void>;
+  onApproveLeave: (requestId: number, status: "approved" | "rejected") => Promise<void>;
+  onCreateReport: (values: { title: string; report_type: string; description: string; recommendation: string }) => Promise<void>;
+  onUpdateReport: (reportId: number, status: ManagerReportStatus) => Promise<void>;
+  onDeleteReport: (reportId: number) => Promise<void>;
+  onClose: () => void;
 }) {
-  const [selectedReportType, setSelectedReportType] = useState<AuditorReportType>("compliance");
+  const assignees = data.team.filter((member) => member.role !== "MANAGER");
+  const [task, setTask] = useState({ title: "", description: "", priority: "medium", assignee_email: assignees[0]?.email ?? "", due_at: "2026-06-03T15:00" });
+  const [report, setReport] = useState({ title: "", report_type: "leadership", description: "", recommendation: "" });
+  const [message, setMessage] = useState("");
+
+  const createTask = async (event: React.FormEvent) => {
+    event.preventDefault();
+    await onCreateTask(task);
+    setTask((current) => ({ ...current, title: "", description: "" }));
+    setMessage("Task assigned and added to the approval queue.");
+  };
+
+  const createReport = async (event: React.FormEvent) => {
+    event.preventDefault();
+    await onCreateReport(report);
+    setReport((current) => ({ ...current, title: "", description: "", recommendation: "" }));
+    setMessage("Leadership report draft saved.");
+  };
 
   return (
-    <div className="dashboard-grid">
-      <section className="dashboard-card span-12 auditor-shell">
-        <div className="panel-heading">
-          <div>
-            <span className="eyebrow tone-rose">Audit workspace</span>
-            <h2>Compliance, risk, policy review and system control oversight in one evidence-driven surface</h2>
-          </div>
-          <div className="button-row">
-            <a href="#auditor-reports" className="ghost-button">Reports</a>
-            <a href="#auditor-policies" className="ghost-button">Policies</a>
-            <a href="#auditor-timeline" className="ghost-button">Timeline</a>
-          </div>
+    <section className="security-studio manager-control-studio">
+      <header className="security-studio-topbar">
+        <div>
+          <button type="button" className="security-demo-button" onClick={onClose}>Back to overview</button>
+          <span>Manager operations</span>
+          <h1>Management control center</h1>
         </div>
+      </header>
+      {message ? <div className="security-studio-message">{message}</div> : null}
 
-        <div className="security-summary-grid">
-          {auditorMetrics.map((item) => (
-            <article key={item.label} className="security-summary-card">
-              <span>{item.label}</span>
-              <strong>{item.value}</strong>
-              <p>{item.note}</p>
+      <div className="manager-control-layout">
+        <section className="manager-control-column">
+          <form className="auditor-report-form" onSubmit={createTask}>
+            <span className="security-command-kicker">Personnel management</span>
+            <h2>Assign task</h2>
+            <label><span>Task title</span><input value={task.title} onChange={(event) => setTask({ ...task, title: event.target.value })} required /></label>
+            <label><span>Description</span><textarea value={task.description} onChange={(event) => setTask({ ...task, description: event.target.value })} /></label>
+            <label><span>Assignee</span><select value={task.assignee_email} onChange={(event) => setTask({ ...task, assignee_email: event.target.value })}>{assignees.map((member) => <option key={member.id} value={member.email}>{member.email} · {member.role.replace("_", " ")}</option>)}</select></label>
+            <label><span>Priority</span><select value={task.priority} onChange={(event) => setTask({ ...task, priority: event.target.value })}><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></label>
+            <label><span>Due date</span><input type="datetime-local" value={task.due_at} onChange={(event) => setTask({ ...task, due_at: event.target.value })} required /></label>
+            <button type="submit" className="security-primary-button">Assign task</button>
+          </form>
+
+          <section className="manager-control-card">
+            <div className="security-section-title"><div><span>Task governance</span><h2>Task approvals</h2></div><strong>{String(data.tasks.length).padStart(2, "0")}</strong></div>
+            <div className="manager-approval-list">{data.tasks.map((entry) => <article key={entry.id} className="security-glass-card manager-approval-card"><div><span className={`status-pill manager-approval-${entry.approval_status}`}>{entry.approval_status}</span><h3>{entry.title}</h3><p>{entry.owner} · {entry.due}</p></div>{entry.approval_status === "pending" ? <div className="auditor-report-actions"><button type="button" className="security-primary-button" onClick={() => onApproveTask(entry.id, "approved")}>Approve</button><button type="button" className="security-demo-button danger-button" onClick={() => onApproveTask(entry.id, "rejected")}>Reject</button></div> : null}</article>)}</div>
+          </section>
+
+          <section className="manager-control-card">
+            <div className="security-section-title"><div><span>Personnel availability</span><h2>Leave requests</h2></div><strong>{String(data.leave_requests.length).padStart(2, "0")}</strong></div>
+            <div className="manager-approval-list">{data.leave_requests.map((request) => <article key={request.id} className="security-glass-card manager-approval-card"><div><span className={`status-pill manager-approval-${request.status}`}>{request.status}</span><h3>{request.employee}</h3><p>{request.request_type.replace("_", " ")} · {request.starts_on} - {request.ends_on}</p><small>{request.reason}</small></div>{request.status === "pending" ? <div className="auditor-report-actions"><button type="button" className="security-primary-button" onClick={() => onApproveLeave(request.id, "approved")}>Approve leave</button><button type="button" className="security-demo-button danger-button" onClick={() => onApproveLeave(request.id, "rejected")}>Reject</button></div> : null}</article>)}</div>
+          </section>
+        </section>
+
+        <section className="manager-control-column">
+          <form className="auditor-report-form" onSubmit={createReport}>
+            <span className="security-command-kicker">Leadership reporting</span>
+            <h2>New management report</h2>
+            <label><span>Report title</span><input value={report.title} onChange={(event) => setReport({ ...report, title: event.target.value })} required /></label>
+            <label><span>Type</span><select value={report.report_type} onChange={(event) => setReport({ ...report, report_type: event.target.value })}><option value="leadership">Leadership</option><option value="risk">Risk mitigation</option><option value="personnel">Personnel</option><option value="systems">Systems oversight</option><option value="compliance">Compliance</option></select></label>
+            <label><span>Description</span><textarea value={report.description} onChange={(event) => setReport({ ...report, description: event.target.value })} required /></label>
+            <label><span>Recommendation</span><textarea value={report.recommendation} onChange={(event) => setReport({ ...report, recommendation: event.target.value })} /></label>
+            <button type="submit" className="security-primary-button">Save report draft</button>
+          </form>
+
+          <section className="manager-control-card">
+            <div className="security-section-title"><div><span>Saved reports</span><h2>Leadership report library</h2></div><strong>{String(data.reports.length).padStart(2, "0")}</strong></div>
+            <div className="manager-approval-list">{data.reports.map((entry) => <article key={entry.id} className="security-glass-card manager-approval-card"><div><span className={`status-pill auditor-report-${entry.status}`}>{entry.status}</span><h3>{entry.title}</h3><p>{entry.description}</p><small>{entry.recommendation}</small></div><div className="auditor-report-actions"><button type="button" className="security-primary-button" onClick={() => generateManagerPdf(entry)}>Generate PDF</button><button type="button" className="security-demo-button" onClick={() => onUpdateReport(entry.id, entry.status === "approved" ? "review" : "approved")}>{entry.status === "approved" ? "Return to review" : "Approve"}</button><button type="button" className="security-demo-button danger-button" onClick={() => onDeleteReport(entry.id)}>Delete</button></div></article>)}</div>
+          </section>
+        </section>
+      </div>
+    </section>
+  );
+}
+
+function ManagerDashboard({ user, onLogout }: { user: StoredUser; onLogout: () => void }) {
+  const [activeModuleId, setActiveModuleId] = useState(managerModules[0].id);
+  const [searchValue, setSearchValue] = useState("");
+  const [drawerMode, setDrawerMode] = useState<"chat" | "notifications" | null>(null);
+  const [workspaceMode, setWorkspaceMode] = useState<"module" | "evidence" | "management" | null>(null);
+  const [dashboardData, setDashboardData] = useState<ManagerDashboardData>({ metrics: managerMetrics, modules: managerModules, priorities: managerPriorities, notifications: managerNotifications, tasks: managerTasks, leave_requests: managerLeaveRequests, reports: managerReports, team: managerTeam });
+  const [dashboardError, setDashboardError] = useState("");
+  const [isDashboardLoading, setIsDashboardLoading] = useState(true);
+  const [chatDirectory, setChatDirectory] = useState<ChatDirectory>({ users: [], groups: [] });
+  const [isChatDirectoryLoading, setIsChatDirectoryLoading] = useState(true);
+  const [chatDirectoryError, setChatDirectoryError] = useState("");
+  const modules = dashboardData.modules.length ? dashboardData.modules : managerModules;
+  const activeModule = modules.find((module) => module.id === activeModuleId) ?? modules[0];
+  const filteredRows = activeModule.rows.filter((row) => `${row.name} ${row.detail}`.toLowerCase().includes(searchValue.trim().toLowerCase()));
+  const chatPersona = user.role === "MANAGER" ? user.email : chatDirectory.users.find((entry) => entry.role === "MANAGER")?.email ?? "manager.soc@local.dev";
+
+  const loadDashboard = async () => {
+    setIsDashboardLoading(true);
+    setDashboardError("");
+    try {
+      const response = await fetch("http://localhost:8000/manager/dashboard");
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Could not load Manager data.");
+      setDashboardData(data);
+    } catch (error) {
+      setDashboardError(error instanceof Error ? error.message : "Could not load Manager data.");
+    } finally {
+      setIsDashboardLoading(false);
+    }
+  };
+
+  useEffect(() => { loadDashboard(); }, []);
+  useEffect(() => {
+    fetch("http://localhost:8000/users/chat-directory").then((response) => response.json()).then((data) => setChatDirectory({ users: data.users ?? [], groups: data.groups ?? [] })).catch((error) => setChatDirectoryError(error instanceof Error ? error.message : "Could not load chat teammates.")).finally(() => setIsChatDirectoryLoading(false));
+  }, []);
+
+  const requestAndReload = async (url: string, options: RequestInit) => {
+    const response = await fetch(url, options);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || "Manager operation failed.");
+    await loadDashboard();
+  };
+  const createTask = (values: { title: string; description: string; priority: string; assignee_email: string; due_at: string }) => requestAndReload("http://localhost:8000/manager/tasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(values) });
+  const approveTask = (id: number, approval_status: "approved" | "rejected") => requestAndReload(`http://localhost:8000/manager/tasks/${id}/approval`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ approval_status }) });
+  const approveLeave = (id: number, status: "approved" | "rejected") => requestAndReload(`http://localhost:8000/manager/leave-requests/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+  const createReport = (values: { title: string; report_type: string; description: string; recommendation: string }) => requestAndReload("http://localhost:8000/manager/reports", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(values) });
+  const updateReport = (id: number, status: ManagerReportStatus) => requestAndReload(`http://localhost:8000/manager/reports/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+  const deleteReport = async (id: number) => { if (window.confirm("Delete this manager report?")) await requestAndReload(`http://localhost:8000/manager/reports/${id}`, { method: "DELETE" }); };
+  const dismissNotification = async (id: number) => { await requestAndReload(`http://localhost:8000/manager/notifications/${id}/dismiss`, { method: "PUT" }); };
+  const advanceTask = async (id: number) => {
+    const task = dashboardData.tasks.find((entry) => entry.id === id);
+    if (!task) return;
+    const status = task.status === "queued" ? "in_progress" : task.status === "in_progress" ? "done" : "queued";
+    await requestAndReload(`http://localhost:8000/manager/tasks/${id}/status`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+  };
+  const selectModule = (id: string) => { setActiveModuleId(id); setSearchValue(""); setWorkspaceMode(null); };
+
+  if (workspaceMode === "management") return <ManagerControlCenter data={dashboardData} onCreateTask={createTask} onApproveTask={approveTask} onApproveLeave={approveLeave} onCreateReport={createReport} onUpdateReport={updateReport} onDeleteReport={deleteReport} onClose={() => setWorkspaceMode(null)} />;
+  if (workspaceMode) return <SecurityModuleWorkspace module={activeModule} mode={workspaceMode} onClose={() => setWorkspaceMode(null)} />;
+
+  return <RoleWorkspaceShell roleLabel="Security Manager" boardTitle="Leadership & operations board" personaDetail="people + policy + risk" chatLabel="Manager chat" modules={modules} activeModuleId={activeModule.id} onSelectModule={selectModule} searchValue={searchValue} onSearchChange={setSearchValue} unreadChatCount={0} notificationCount={dashboardData.notifications.length} drawerMode={drawerMode} onOpenDrawer={setDrawerMode} onCloseDrawer={() => setDrawerMode(null)} onLogout={onLogout} signedInUser={user} workspacePersona={chatPersona.split("@")[0]} drawer={<><div hidden={drawerMode !== "chat"}><SecurityEngineerChatDrawer directory={{ users: chatDirectory.users, groups: chatDirectory.groups.filter((group) => group.role === null || group.role === "MANAGER") }} currentUserEmail={chatPersona} isLoading={isChatDirectoryLoading} errorMessage={chatDirectoryError} /></div><div hidden={drawerMode !== "notifications"}><SecurityEngineerNotificationsDrawer notifications={dashboardData.notifications} onDismissNotification={dismissNotification} tasks={dashboardData.tasks} onAdvanceTask={advanceTask} /></div></>}>
+    <section className="security-command-content">
+      <div className="security-command-intro"><div><span className="security-command-kicker">Leadership operations workspace</span><h1>Lead teams.<br />Reduce risk.</h1></div><p>Develop policies, supervise personnel, assess threats and coordinate security decisions from one management surface.</p></div>
+      {isDashboardLoading ? <div className="security-studio-message">Loading management data from PostgreSQL...</div> : null}
+      {dashboardError ? <div className="security-chat-error">{dashboardError}</div> : null}
+      <div className="security-command-metrics">{dashboardData.metrics.map((metric) => <article key={metric.label} className="security-glass-card security-metric-card"><span>{metric.label}</span><strong>{metric.value}</strong><p>{metric.note}</p></article>)}</div>
+      <div className="security-command-grid"><article className="security-glass-card security-module-panel"><div className="security-module-heading"><span className="role-workspace-nav-icon"><WorkspaceIcon name={activeModule.id} /></span><div><span>Selected module</span><h2>{activeModule.title}</h2></div><strong>{activeModule.count}</strong></div><p>{activeModule.description}</p><div className="security-module-results">{filteredRows.length ? filteredRows.map((row) => <div key={row.name} className="security-module-row"><div><strong>{row.name}</strong><span>{row.detail}</span></div><em>{row.value}</em></div>) : <div className="security-empty-state">No management evidence found.</div>}</div><div className="security-module-footer"><button type="button" className="security-primary-button" onClick={() => setWorkspaceMode(activeModule.id === "management" || activeModule.id === "personnel" ? "management" : "module")}>{activeModule.action}</button><button type="button" className="security-demo-button" onClick={() => setWorkspaceMode("evidence")}>View evidence</button></div></article><aside className="security-command-priorities"><div className="security-section-title"><div><span>Current focus</span><h2>Manager priorities</h2></div><strong>{String(dashboardData.priorities.length).padStart(2, "0")}</strong></div>{dashboardData.priorities.map((priority) => <article key={priority.title} className="security-glass-card security-priority-card"><span className={`security-priority-dot ${priority.status}`} /><div><strong>{priority.title}</strong><p>{priority.detail}</p></div></article>)}</aside></div>
+    </section>
+  </RoleWorkspaceShell>;
+}
+
+function AuditorReportManager({
+  reports,
+  user,
+  onAddReport,
+  onUpdateStatus,
+  onDeleteReport,
+  onClose,
+}: {
+  reports: AuditorReport[];
+  user: StoredUser;
+  onAddReport: (values: { title: string; report_type: AuditorReportType; description: string; recommendation: string }) => Promise<void>;
+  onUpdateStatus: (reportId: number, status: AuditorReportStatus) => Promise<void>;
+  onDeleteReport: (reportId: number) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [reportType, setReportType] = useState<AuditorReportType>("compliance");
+  const [description, setDescription] = useState("");
+  const [recommendation, setRecommendation] = useState("");
+  const [message, setMessage] = useState("");
+
+  const createReport = async (event: React.FormEvent) => {
+    event.preventDefault();
+    await onAddReport({ title, report_type: reportType, description, recommendation });
+    setTitle("");
+    setDescription("");
+    setRecommendation("");
+    setMessage("Report draft saved to the auditor workspace.");
+  };
+
+  return (
+    <section className="security-studio auditor-report-studio">
+      <header className="security-studio-topbar">
+        <div>
+          <button type="button" className="security-demo-button" onClick={onClose}>Back to overview</button>
+          <span>Auditor management</span>
+          <h1>Report control center</h1>
+        </div>
+      </header>
+
+      {message ? <div className="security-studio-message">{message}</div> : null}
+
+      <div className="auditor-report-layout">
+        <form className="auditor-report-form" onSubmit={createReport}>
+          <span className="security-command-kicker">Add management report</span>
+          <h2>New report draft</h2>
+          <label><span>Title</span><input value={title} onChange={(event) => setTitle(event.target.value)} required /></label>
+          <label>
+            <span>Report type</span>
+            <select value={reportType} onChange={(event) => setReportType(event.target.value as AuditorReportType)}>
+              <option value="compliance">Compliance evaluation</option>
+              <option value="risk">Risk assessment</option>
+              <option value="policy">Policy review</option>
+              <option value="system_controls">System controls</option>
+            </select>
+          </label>
+          <label><span>Description</span><textarea value={description} onChange={(event) => setDescription(event.target.value)} required /></label>
+          <label><span>Recommendation</span><textarea value={recommendation} onChange={(event) => setRecommendation(event.target.value)} /></label>
+          <button type="submit" className="security-primary-button">Save draft</button>
+        </form>
+
+        <main className="auditor-report-catalog">
+          <div className="security-section-title">
+            <div><span>Saved reports</span><h2>Management report library</h2></div>
+            <strong>{String(reports.length).padStart(2, "0")}</strong>
+          </div>
+          <div className="auditor-report-list">
+            {reports.map((report) => (
+              <article key={report.id} className="security-glass-card auditor-report-card">
+                <div className="auditor-report-card-head">
+                  <div>
+                    <span className={`status-pill auditor-report-${report.status}`}>{report.status}</span>
+                    <h3>{report.title}</h3>
+                  </div>
+                  <small>{report.updated_at}</small>
+                </div>
+                <p>{report.description}</p>
+                <div className="auditor-recommendation"><strong>Recommendation</strong><span>{report.recommendation || "No recommendation added yet."}</span></div>
+                <div className="auditor-report-actions">
+                  <button type="button" className="security-primary-button" onClick={() => generateAuditPdf(user, report.report_type)}>Generate PDF</button>
+                  <button type="button" className="security-demo-button" onClick={() => onUpdateStatus(report.id, report.status === "approved" ? "review" : "approved")}>
+                    {report.status === "approved" ? "Return to review" : "Approve"}
+                  </button>
+                  <button type="button" className="security-demo-button danger-button" onClick={() => onDeleteReport(report.id)}>Delete</button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </main>
+      </div>
+    </section>
+  );
+}
+
+function AuditorDashboard({
+  user,
+  onLogout,
+}: {
+  user: StoredUser;
+  onLogout: () => void;
+}) {
+  const [activeModuleId, setActiveModuleId] = useState(auditorModules[0].id);
+  const [searchValue, setSearchValue] = useState("");
+  const [drawerMode, setDrawerMode] = useState<"chat" | "notifications" | null>(null);
+  const [workspaceMode, setWorkspaceMode] = useState<"module" | "evidence" | "reports" | null>(null);
+  const [dashboardData, setDashboardData] = useState<AuditorDashboardData>({
+    metrics: auditorMetrics,
+    modules: auditorModules,
+    priorities: auditorPriorities,
+    notifications: auditorNotifications,
+    tasks: tasksByRole.AUDITOR,
+    reports: auditorReports,
+  });
+  const [dashboardError, setDashboardError] = useState("");
+  const [isDashboardLoading, setIsDashboardLoading] = useState(true);
+  const [chatDirectory, setChatDirectory] = useState<ChatDirectory>({ users: [], groups: [] });
+  const [isChatDirectoryLoading, setIsChatDirectoryLoading] = useState(true);
+  const [chatDirectoryError, setChatDirectoryError] = useState("");
+  const modules = dashboardData.modules.length ? dashboardData.modules : auditorModules;
+  const activeModule = modules.find((module) => module.id === activeModuleId) ?? modules[0];
+  const filteredRows = activeModule.rows.filter((row) => `${row.name} ${row.detail}`.toLowerCase().includes(searchValue.trim().toLowerCase()));
+  const chatPersona = user.role === "AUDITOR" ? user.email : chatDirectory.users.find((entry) => entry.role === "AUDITOR")?.email ?? "alexandru.stan@local.dev";
+
+  const loadDashboard = async () => {
+    setIsDashboardLoading(true);
+    setDashboardError("");
+    try {
+      const response = await fetch("http://localhost:8000/auditor/dashboard");
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Could not load Auditor data.");
+      setDashboardData(data);
+    } catch (error) {
+      setDashboardError(error instanceof Error ? error.message : "Could not load Auditor data.");
+    } finally {
+      setIsDashboardLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDashboard();
+  }, []);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function loadChatDirectory() {
+      setIsChatDirectoryLoading(true);
+      setChatDirectoryError("");
+
+      try {
+        const response = await fetch("http://localhost:8000/users/chat-directory");
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.detail || "Could not load chat teammates.");
+        }
+
+        if (!isCancelled) {
+          setChatDirectory({
+            users: data.users ?? [],
+            groups: data.groups ?? [],
+          });
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          setChatDirectory({ users: [], groups: [] });
+          setChatDirectoryError(error instanceof Error ? error.message : "Could not load chat teammates.");
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsChatDirectoryLoading(false);
+        }
+      }
+    }
+
+    loadChatDirectory();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  const dismissNotification = async (notificationId: number) => {
+    try {
+      const response = await fetch(`http://localhost:8000/auditor/notifications/${notificationId}/dismiss`, {
+        method: "PUT",
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Could not dismiss notification.");
+      }
+
+      setDashboardData((current) => ({
+        ...current,
+        notifications: current.notifications.filter((notification) => notification.id !== notificationId),
+      }));
+    } catch (error) {
+      setDashboardError(error instanceof Error ? error.message : "Could not dismiss notification.");
+    }
+  };
+
+  const advanceTask = async (taskId: number) => {
+    const task = dashboardData.tasks.find((entry) => entry.id === taskId);
+
+    if (!task) {
+      return;
+    }
+
+    const status = task.status === "queued" ? "in_progress" : task.status === "in_progress" ? "done" : "queued";
+
+    try {
+      const response = await fetch(`http://localhost:8000/auditor/tasks/${taskId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Could not update task.");
+      }
+
+      setDashboardData((current) => ({
+        ...current,
+        tasks: current.tasks.map((entry) => entry.id === taskId ? { ...entry, status } : entry),
+      }));
+    } catch (error) {
+      setDashboardError(error instanceof Error ? error.message : "Could not update task.");
+    }
+  };
+
+  const addReport = async (values: { title: string; report_type: AuditorReportType; description: string; recommendation: string }) => {
+    const response = await fetch("http://localhost:8000/auditor/reports", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(values) });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || "Could not create report.");
+    await loadDashboard();
+  };
+  const updateReportStatus = async (reportId: number, status: AuditorReportStatus) => {
+    const response = await fetch(`http://localhost:8000/auditor/reports/${reportId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+    if (!response.ok) throw new Error("Could not update report.");
+    await loadDashboard();
+  };
+  const deleteReport = async (reportId: number) => {
+    if (!window.confirm("Delete this auditor report?")) return;
+    const response = await fetch(`http://localhost:8000/auditor/reports/${reportId}`, { method: "DELETE" });
+    if (!response.ok) throw new Error("Could not delete report.");
+    await loadDashboard();
+  };
+
+  const selectModule = (moduleId: string) => {
+    setActiveModuleId(moduleId);
+    setSearchValue("");
+    setWorkspaceMode(null);
+  };
+
+  if (workspaceMode === "reports") return <AuditorReportManager reports={dashboardData.reports} user={user} onAddReport={addReport} onUpdateStatus={updateReportStatus} onDeleteReport={deleteReport} onClose={() => setWorkspaceMode(null)} />;
+  if (workspaceMode) return <SecurityModuleWorkspace module={activeModule} mode={workspaceMode} onClose={() => setWorkspaceMode(null)} />;
+
+  return (
+    <RoleWorkspaceShell
+      roleLabel="Security Auditor"
+      boardTitle="Assurance & compliance board"
+      personaDetail="controls + reporting"
+      chatLabel="Auditor chat"
+      modules={modules}
+      activeModuleId={activeModule.id}
+      onSelectModule={selectModule}
+      searchValue={searchValue}
+      onSearchChange={setSearchValue}
+      unreadChatCount={0}
+      notificationCount={dashboardData.notifications.length}
+      drawerMode={drawerMode}
+      onOpenDrawer={setDrawerMode}
+      onCloseDrawer={() => setDrawerMode(null)}
+      onLogout={onLogout}
+      signedInUser={user}
+      workspacePersona={chatPersona.split("@")[0]}
+      drawer={
+        <>
+          <div hidden={drawerMode !== "chat"}>
+            <SecurityEngineerChatDrawer
+              key={chatDirectory.groups
+                .filter((group) => group.role === null || group.role === "AUDITOR")
+                .map((group) => `${group.id}:${group.participants.join(",")}`)
+                .join("|")}
+              directory={{
+                users: chatDirectory.users,
+                groups: chatDirectory.groups.filter((group) => group.role === null || group.role === "AUDITOR"),
+              }}
+              currentUserEmail={chatPersona}
+              isLoading={isChatDirectoryLoading}
+              errorMessage={chatDirectoryError}
+            />
+          </div>
+          <div hidden={drawerMode !== "notifications"}>
+            <SecurityEngineerNotificationsDrawer
+              notifications={dashboardData.notifications}
+              onDismissNotification={dismissNotification}
+              tasks={dashboardData.tasks}
+              onAdvanceTask={advanceTask}
+            />
+          </div>
+        </>
+      }
+    >
+      <section className="security-command-content">
+        <div className="security-command-intro">
+          <div>
+            <span className="security-command-kicker">Audit assurance workspace</span>
+            <h1>Inspect controls.<br />Improve resilience.</h1>
+          </div>
+          <p>Evaluate compliance, test risks, audit policies and turn evidence into actionable management recommendations.</p>
+        </div>
+        {isDashboardLoading ? <div className="security-studio-message">Loading audit data from PostgreSQL...</div> : null}
+        {dashboardError ? <div className="security-chat-error">{dashboardError}</div> : null}
+
+        <div className="security-command-metrics">
+          {dashboardData.metrics.map((metric) => (
+            <article key={metric.label} className="security-glass-card security-metric-card">
+              <span>{metric.label}</span>
+              <strong>{metric.value}</strong>
+              <p>{metric.note}</p>
             </article>
           ))}
         </div>
 
-        <div className="analyst-capability-grid">
-          <article className="security-mission-card">
-            <strong>Compliance evaluations</strong>
-            <p>Validate procedures and evidence against standards like HIPAA and PCI-DSS.</p>
-          </article>
-          <article className="security-mission-card">
-            <strong>Risk assessment</strong>
-            <p>Identify vulnerabilities, insider-risk exposure and weak controls across systems.</p>
-          </article>
-          <article className="security-mission-card">
-            <strong>Policy review</strong>
-            <p>Audit policies, response plans and access control matrices with DB-backed evidence.</p>
-          </article>
-          <article className="security-mission-card">
-            <strong>Reporting</strong>
-            <p>Generate management-ready PDF reports by audit type, not just one generic export.</p>
-          </article>
-        </div>
-      </section>
-
-      <NonAdminWorkspace role="AUDITOR" forceOpen={mailOpen} />
-
-      <section className="dashboard-card hero-panel span-8" id="auditor-reports">
-        <div className="panel-heading">
-          <div>
-            <span className="eyebrow tone-rose">Read-only oversight</span>
-            <h2>Audit and reporting center</h2>
-            <p className="dashboard-subtitle security-panel-copy">
-              Review infrastructure controls, procedures and audit trails, then export the exact PDF report type needed by management or compliance.
-            </p>
-          </div>
-          <div className="button-row">
-            <button type="button" className="ghost-button">
-              Export CSV
-            </button>
-          </div>
-        </div>
-
-        <div className="report-type-grid">
-          {auditorReportTypes.map((report) => (
-            <article
-              key={report.id}
-              className={classNames(
-                "report-type-card",
-                selectedReportType === report.id && "active"
-              )}
-            >
+        <div className="security-command-grid">
+          <article className="security-glass-card security-module-panel">
+            <div className="security-module-heading">
+              <span className="role-workspace-nav-icon"><WorkspaceIcon name={activeModule.id} /></span>
               <div>
-                <strong>{report.title}</strong>
-                <p>{report.description}</p>
+                <span>Selected module</span>
+                <h2>{activeModule.title}</h2>
               </div>
+              <strong>{activeModule.count}</strong>
+            </div>
+            <p>{activeModule.description}</p>
+
+            <div className="security-module-results">
+              {filteredRows.length ? filteredRows.map((row) => (
+                <div key={row.name} className="security-module-row">
+                  <div>
+                    <strong>{row.name}</strong>
+                    <span>{row.detail}</span>
+                  </div>
+                  <em>{row.value}</em>
+                </div>
+              )) : (
+                <div className="security-empty-state">No audit evidence found.</div>
+              )}
+            </div>
+
+            <div className="security-module-footer">
               <button
                 type="button"
-                className="primary-button"
-                onClick={() => {
-                  setSelectedReportType(report.id);
-                  generateAuditPdf(user, report.id);
-                }}
+                className="security-primary-button"
+                onClick={() => setWorkspaceMode(activeModule.id === "reports" ? "reports" : "module")}
               >
-                Generate PDF
+                {activeModule.action}
               </button>
-            </article>
-          ))}
-        </div>
-
-        <div className="dashboard-split">
-          <div>
-            <div className="section-heading">
-              <h3>Compliance and risk charts</h3>
-              <span>from audit evidence and operational tables</span>
+              <button type="button" className="security-demo-button" onClick={() => setWorkspaceMode("evidence")}>
+                View evidence
+              </button>
             </div>
-            <div className="chart-grid">
-              <article className="chart-card">
-                <div className="chart-card-head">
-                  <strong>Compliance coverage</strong>
-                  <span>policies and procedures</span>
+          </article>
+
+          <aside className="security-command-priorities">
+            <div className="security-section-title">
+              <div>
+                <span>Current focus</span>
+                <h2>Audit priorities</h2>
+              </div>
+              <strong>{String(dashboardData.priorities.length).padStart(2, "0")}</strong>
+            </div>
+            {dashboardData.priorities.map((priority) => (
+              <article key={priority.title} className="security-glass-card security-priority-card">
+                <span className={`security-priority-dot ${priority.status}`} />
+                <div>
+                  <strong>{priority.title}</strong>
+                  <p>{priority.detail}</p>
                 </div>
-                {renderMiniBars(auditorChartSeries.compliance, "emerald")}
               </article>
-              <article className="chart-card">
-                <div className="chart-card-head">
-                  <strong>Risk findings</strong>
-                  <span>current audit window</span>
-                </div>
-                {renderMiniBars(auditorChartSeries.risk, "rose")}
-              </article>
-            </div>
-          </div>
-
-          <div>
-            <div className="section-heading">
-              <h3>Review scope</h3>
-              <span>mapped to database entities</span>
-            </div>
-            <div className="scope-list">
-              <div className="scope-row">
-                <span>`audit_logs`</span>
-                <strong>148 trace events and privileged actions</strong>
-              </div>
-              <div className="scope-row">
-                <span>`playbooks` / `playbook_steps`</span>
-                <strong>7 production flows under control review</strong>
-              </div>
-              <div className="scope-row">
-                <span>`incidents` / `incident_alerts`</span>
-                <strong>incident traceability and evidence linkage checked</strong>
-              </div>
-              <div className="scope-row">
-                <span>`playbook_executions` / `execution_logs`</span>
-                <strong>execution control coverage and failure review</strong>
-              </div>
-            </div>
-          </div>
+            ))}
+          </aside>
         </div>
       </section>
-
-      <section className="dashboard-card span-4">
-        <div className="section-heading">
-          <h3>System audit focus</h3>
-          <span>control testing and unauthorized access prevention</span>
-        </div>
-        <div className="security-side-list">
-          <article className="security-side-card">
-            <span className="status-pill neutral">Infrastructure</span>
-            <strong>Firewall and execution controls sampled this week</strong>
-            <p>`playbook_executions` and `execution_logs` are reviewed for failed or partially controlled actions.</p>
-          </article>
-          <article className="security-side-card">
-            <span className="status-pill incident-open">Access review</span>
-            <strong>Privileged changes traced from `audit_logs`</strong>
-            <p>Focus on role changes, policy exceptions and any path that could permit unauthorized access.</p>
-          </article>
-          <article className="security-side-card">
-            <span className="status-pill exec-running">Threat exposure</span>
-            <strong>Incident creation paths tested against policy</strong>
-            <p>Manual, rule-based and ML-created incidents are checked for evidence completeness and governance coverage.</p>
-          </article>
-        </div>
-      </section>
-
-      <section className="dashboard-card span-6" id="auditor-policies">
-        <div className="section-heading">
-          <h3>Policy and procedure review</h3>
-          <span>documentation audit with system context</span>
-        </div>
-        <div className="security-side-list">
-          {policyReviewItems.map((item) => (
-            <article key={item.title} className="security-side-card">
-              <div className="task-topline">
-                <span className="status-pill neutral">{item.status}</span>
-              </div>
-              <strong>{item.title}</strong>
-              <p>{item.detail}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="dashboard-card span-6">
-        <div className="section-heading">
-          <h3>Control coverage charts</h3>
-          <span>how well the core tables are governed</span>
-        </div>
-        <div className="chart-grid">
-          <article className="chart-card">
-            <div className="chart-card-head">
-              <strong>Coverage by table</strong>
-              <span>data security and traceability</span>
-            </div>
-            {renderMiniBars(auditorChartSeries.controlCoverage, "cyan")}
-          </article>
-          <article className="chart-card">
-            <div className="chart-card-head">
-              <strong>Report exports by type</strong>
-              <span>PDF reporting mix</span>
-            </div>
-            {renderMiniBars(auditorChartSeries.reportMix, "amber")}
-          </article>
-        </div>
-      </section>
-
-      <section className="dashboard-card span-12" id="auditor-timeline">
-        <div className="section-heading">
-          <h3>Immutable audit timeline</h3>
-          <span>who changed what and when</span>
-        </div>
-        <div className="audit-table">
-          <div className="audit-header">
-            <span>Timestamp</span>
-            <span>Actor</span>
-            <span>Action</span>
-            <span>Surface</span>
-            <span>Details</span>
-          </div>
-          {auditLogs.map((log) => (
-            <div key={log.id} className="audit-row">
-              <span>{log.timestamp}</span>
-              <span>{log.actor}</span>
-              <span>{log.action}</span>
-              <span>{log.surface}</span>
-              <span>{log.details}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-    </div>
+    </RoleWorkspaceShell>
   );
 }
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [selectedView, setSelectedView] = useState<Role | "AUTO">("AUTO");
-  const [mailOpen, setMailOpen] = useState(false);
-  const [dbUsers, setDbUsers] = useState<DbUser[]>([]);
 
   const user = useMemo<StoredUser | null>(() => {
     const rawUser = window.sessionStorage.getItem("coreshieldUser");
@@ -4591,131 +4994,33 @@ export default function Dashboard() {
     return selectedView === "AUTO" ? user.role : selectedView;
   }, [selectedView, user]);
 
-  useEffect(() => {
-    setMailOpen(false);
-  }, [activeRole]);
-
-  useEffect(() => {
-    if (!user || activeRole !== "ADMIN") {
-      return;
-    }
-
-    let isCancelled = false;
-
-    async function loadUsers() {
-      try {
-        const response = await fetch("http://localhost:8000/users");
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.detail || "Could not load users.");
-        }
-
-        if (!isCancelled) {
-          setDbUsers(data.users ?? []);
-        }
-      } catch {
-        if (!isCancelled) {
-          setDbUsers([]);
-        }
-      }
-    }
-
-    loadUsers();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [activeRole, user]);
-
   const handleLogout = () => {
     window.sessionStorage.removeItem("coreshieldUser");
     navigate("/login", { replace: true });
   };
 
-  const openMailPanel = () => {
-    setMailOpen(true);
-
-    if (activeRole === "SECURITY_ENGINEER") {
-      return;
-    }
-
-    window.requestAnimationFrame(() => {
-      document.getElementById("service-inbox")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
+  const selectView = (view: Role | "AUTO") => {
+    setSelectedView(view);
   };
 
   if (!user || !activeRole) {
     return null;
   }
 
-  const roleMeta: Record<Role, { title: string; subtitle: string }> = {
-    ADMIN: {
-      title: "Platform-wide visibility and control.",
-      subtitle:
-        "Configure operators, automation policy, ML thresholds and governance signals from a single command surface.",
-    },
-    ANALYST: {
-      title: "Investigate, validate and respond fast.",
-      subtitle:
-        "Review alerts, validate ML-created incidents and take the right action before noise becomes impact.",
-    },
-    SECURITY_ENGINEER: {
-      title: "Engineer secure workflows behind every response.",
-      subtitle:
-        "Design secure infrastructure workflows, automate containment and keep chat, tasks, code and change history in one operational workspace.",
-    },
-    AUDITOR: {
-      title: "Read-only oversight with evidence-ready reporting.",
-      subtitle:
-        "Track every privileged action, review execution trails and generate formal reports for compliance and leadership.",
-    },
-    MANAGER: {
-      title: "Lead the department, capacity and operational decisions.",
-      subtitle:
-        "Coordinate people, approve escalations, balance workload and keep the response function on target without stepping into audit forensics.",
-    },
-  };
-
-  const unreadCount =
-    activeRole === "ADMIN" ? 0 : getNonAdminThreads(activeRole).filter((thread) => thread.unread).length;
-
   return (
-    <section className={classNames("dashboard-shell", (activeRole === "SECURITY_ENGINEER" || activeRole === "ANALYST") && "dashboard-shell-fullscreen")}>
+    <section className={classNames("dashboard-shell", user.role === "ADMIN" && "dashboard-shell-admin")}>
       <div className="dashboard-backdrop" />
 
       <div className="dashboard-frame">
-        {activeRole !== "SECURITY_ENGINEER" && activeRole !== "ANALYST" ? (
-          <RoleHeader
-            user={user}
-            title={roleMeta[activeRole].title}
-            subtitle={roleMeta[activeRole].subtitle}
-            onLogout={handleLogout}
-            onOpenMail={openMailPanel}
-            mailCount={unreadCount}
-            showMailAction={activeRole !== "ADMIN"}
-          />
-        ) : null}
-
         {user.role === "ADMIN" ? (
           <div className="role-switcher">
             <span>Preview dashboards:</span>
-            <button
-              type="button"
-              className={classNames("role-chip", selectedView === "AUTO" && "active")}
-              onClick={() => setSelectedView("AUTO")}
-            >
-              My role
-            </button>
             {(["ADMIN", "MANAGER", "ANALYST", "SECURITY_ENGINEER", "AUDITOR"] as Role[]).map((role) => (
               <button
                 key={role}
                 type="button"
-                className={classNames(
-                  "role-chip",
-                  activeRole === role && selectedView !== "AUTO" && "active"
-                )}
-                onClick={() => setSelectedView(role)}
+                className={classNames("role-chip", activeRole === role && "active")}
+                onClick={() => selectView(role)}
               >
                 {formatRole(role)}
               </button>
@@ -4723,16 +5028,16 @@ export default function Dashboard() {
           </div>
         ) : null}
 
-        {activeRole === "ADMIN" ? <AdminDashboard users={dbUsers} /> : null}
-        {activeRole === "MANAGER" ? <ManagerDashboard mailOpen={mailOpen} /> : null}
-        {activeRole === "ANALYST" ? <AnalystDashboard user={user} onLogout={handleLogout} mailOpen={mailOpen} /> : null}
+        {activeRole === "ADMIN" ? <AdminDashboard user={user} /> : null}
+        {activeRole === "MANAGER" ? <ManagerDashboard user={user} onLogout={handleLogout} /> : null}
+        {activeRole === "ANALYST" ? <AnalystDashboard user={user} onLogout={handleLogout} mailOpen={false} /> : null}
         {activeRole === "SECURITY_ENGINEER" ? (
           <SecurityEngineerDashboard
             user={user}
             onLogout={handleLogout}
           />
         ) : null}
-        {activeRole === "AUDITOR" ? <AuditorDashboard user={user} mailOpen={mailOpen} /> : null}
+        {activeRole === "AUDITOR" ? <AuditorDashboard user={user} onLogout={handleLogout} /> : null}
       </div>
     </section>
   );
