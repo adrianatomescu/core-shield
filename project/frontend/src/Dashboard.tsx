@@ -1,5 +1,6 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_URL } from "./api";
 import "./Dashboard.css";
 
 type Role = "ADMIN" | "MANAGER" | "SECURITY_ENGINEER" | "ANALYST" | "AUDITOR";
@@ -1784,7 +1785,7 @@ function AdminDatabaseExplorer({ adminEmail }: { adminEmail: string }) {
   const [queryResult, setQueryResult] = useState<AdminQueryResult | null>(null);
 
   const request = async (path: string, options: RequestInit = {}) => {
-    const response = await fetch(`http://localhost:8000/admin/database/${path}`, {
+    const response = await fetch(`${API_URL}/admin/database/${path}`, {
       ...options,
       headers: { "Content-Type": "application/json", ...options.headers },
     });
@@ -3041,7 +3042,7 @@ function SecurityEngineerChatDrawer({
   const loadConversations = useCallback(async (preferredThreadId = "") => {
     setChatApiError("");
     try {
-      const response = await fetch(`http://localhost:8000/chat/threads?user_email=${encodeURIComponent(currentUserEmail)}`);
+      const response = await fetch(`${API_URL}/chat/threads?user_email=${encodeURIComponent(currentUserEmail)}`);
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || "Could not load persistent conversations.");
       const threads: ChatConversation[] = data.conversations ?? [];
@@ -3064,7 +3065,7 @@ function SecurityEngineerChatDrawer({
     }
 
     try {
-      const response = await fetch(`http://localhost:8000/chat/threads/${activeThread.id}/messages`, {
+      const response = await fetch(`${API_URL}/chat/threads/${activeThread.id}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sender_email: currentUserEmail, body: reply }),
@@ -3079,7 +3080,7 @@ function SecurityEngineerChatDrawer({
   };
 
   const createConversation = async (subject: string, participantEmails: string[]) => {
-    const response = await fetch("http://localhost:8000/chat/threads", {
+    const response = await fetch(`${API_URL}/chat/threads`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ subject, creator_email: currentUserEmail, participant_emails: participantEmails }),
@@ -3381,7 +3382,7 @@ function SecurityAutomationStudio({
     }
 
     try {
-      const response = await fetch(`http://localhost:8000/security-engineer/playbook-steps/${selectedStep.id}`, {
+      const response = await fetch(`${API_URL}/security-engineer/playbook-steps/${selectedStep.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ config }),
@@ -3796,7 +3797,7 @@ function AnalystRoleWorkspace({
 
     async function loadChatDirectory() {
       try {
-        const response = await fetch("http://localhost:8000/users/chat-directory");
+        const response = await fetch(`${API_URL}/users/chat-directory`);
         const data = await response.json();
 
         if (!response.ok) {
@@ -3832,7 +3833,7 @@ function AnalystRoleWorkspace({
       setDashboardError("");
 
       try {
-        const response = await fetch("http://localhost:8000/analyst/dashboard");
+        const response = await fetch(`${API_URL}/analyst/dashboard`);
         const data = await response.json();
 
         if (!response.ok) {
@@ -3862,7 +3863,7 @@ function AnalystRoleWorkspace({
 
   const dismissNotification = async (notificationId: number) => {
     try {
-      const response = await fetch(`http://localhost:8000/analyst/notifications/${notificationId}/dismiss`, { method: "PUT" });
+      const response = await fetch(`${API_URL}/analyst/notifications/${notificationId}/dismiss`, { method: "PUT" });
       const data = await response.json();
 
       if (!response.ok) {
@@ -3888,7 +3889,7 @@ function AnalystRoleWorkspace({
     const status = task.status === "queued" ? "in_progress" : task.status === "in_progress" ? "done" : "queued";
 
     try {
-      const response = await fetch(`http://localhost:8000/analyst/tasks/${taskId}`, {
+      const response = await fetch(`${API_URL}/analyst/tasks/${taskId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
@@ -3909,7 +3910,7 @@ function AnalystRoleWorkspace({
   };
 
   const addReportChart = async (chart: Omit<AnalystChart, "id">) => {
-    const response = await fetch("http://localhost:8000/analyst/report-charts", {
+    const response = await fetch(`${API_URL}/analyst/report-charts`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(chart),
@@ -3925,7 +3926,7 @@ function AnalystRoleWorkspace({
   };
 
   const deleteReportChart = async (chartId: number) => {
-    const response = await fetch(`http://localhost:8000/analyst/report-charts/${chartId}`, { method: "DELETE" });
+    const response = await fetch(`${API_URL}/analyst/report-charts/${chartId}`, { method: "DELETE" });
     const data = await response.json();
 
     if (!response.ok) {
@@ -4116,7 +4117,7 @@ function SecurityEngineerDashboard({
       setChatDirectoryError("");
 
       try {
-        const response = await fetch("http://localhost:8000/users/chat-directory");
+        const response = await fetch(`${API_URL}/users/chat-directory`);
         const data = await response.json();
 
         if (!response.ok) {
@@ -4156,7 +4157,7 @@ function SecurityEngineerDashboard({
       setDashboardError("");
 
       try {
-        const response = await fetch("http://localhost:8000/security-engineer/dashboard");
+        const response = await fetch(`${API_URL}/security-engineer/dashboard`);
         const data = await response.json();
 
         if (!response.ok) {
@@ -4186,7 +4187,7 @@ function SecurityEngineerDashboard({
 
   const dismissNotification = async (notificationId: number) => {
     try {
-      const response = await fetch(`http://localhost:8000/security-engineer/notifications/${notificationId}/dismiss`, {
+      const response = await fetch(`${API_URL}/security-engineer/notifications/${notificationId}/dismiss`, {
         method: "PUT",
       });
       const data = await response.json();
@@ -4218,7 +4219,7 @@ function SecurityEngineerDashboard({
         : "queued";
 
     try {
-      const response = await fetch(`http://localhost:8000/security-engineer/tasks/${taskId}`, {
+      const response = await fetch(`${API_URL}/security-engineer/tasks/${taskId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
@@ -4514,7 +4515,7 @@ function ManagerDashboard({ user, onLogout }: { user: StoredUser; onLogout: () =
     setIsDashboardLoading(true);
     setDashboardError("");
     try {
-      const response = await fetch("http://localhost:8000/manager/dashboard");
+      const response = await fetch(`${API_URL}/manager/dashboard`);
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || "Could not load Manager data.");
       setDashboardData(data);
@@ -4527,7 +4528,7 @@ function ManagerDashboard({ user, onLogout }: { user: StoredUser; onLogout: () =
 
   useEffect(() => { loadDashboard(); }, []);
   useEffect(() => {
-    fetch("http://localhost:8000/users/chat-directory").then((response) => response.json()).then((data) => setChatDirectory({ users: data.users ?? [], groups: data.groups ?? [] })).catch((error) => setChatDirectoryError(error instanceof Error ? error.message : "Could not load chat teammates.")).finally(() => setIsChatDirectoryLoading(false));
+    fetch(`${API_URL}/users/chat-directory`).then((response) => response.json()).then((data) => setChatDirectory({ users: data.users ?? [], groups: data.groups ?? [] })).catch((error) => setChatDirectoryError(error instanceof Error ? error.message : "Could not load chat teammates.")).finally(() => setIsChatDirectoryLoading(false));
   }, []);
 
   const requestAndReload = async (url: string, options: RequestInit) => {
@@ -4536,18 +4537,18 @@ function ManagerDashboard({ user, onLogout }: { user: StoredUser; onLogout: () =
     if (!response.ok) throw new Error(data.detail || "Manager operation failed.");
     await loadDashboard();
   };
-  const createTask = (values: { title: string; description: string; priority: string; assignee_email: string; due_at: string }) => requestAndReload("http://localhost:8000/manager/tasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(values) });
-  const approveTask = (id: number, approval_status: "approved" | "rejected") => requestAndReload(`http://localhost:8000/manager/tasks/${id}/approval`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ approval_status }) });
-  const approveLeave = (id: number, status: "approved" | "rejected") => requestAndReload(`http://localhost:8000/manager/leave-requests/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
-  const createReport = (values: { title: string; report_type: string; description: string; recommendation: string }) => requestAndReload("http://localhost:8000/manager/reports", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(values) });
-  const updateReport = (id: number, status: ManagerReportStatus) => requestAndReload(`http://localhost:8000/manager/reports/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
-  const deleteReport = async (id: number) => { if (window.confirm("Delete this manager report?")) await requestAndReload(`http://localhost:8000/manager/reports/${id}`, { method: "DELETE" }); };
-  const dismissNotification = async (id: number) => { await requestAndReload(`http://localhost:8000/manager/notifications/${id}/dismiss`, { method: "PUT" }); };
+  const createTask = (values: { title: string; description: string; priority: string; assignee_email: string; due_at: string }) => requestAndReload(`${API_URL}/manager/tasks`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(values) });
+  const approveTask = (id: number, approval_status: "approved" | "rejected") => requestAndReload(`${API_URL}/manager/tasks/${id}/approval`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ approval_status }) });
+  const approveLeave = (id: number, status: "approved" | "rejected") => requestAndReload(`${API_URL}/manager/leave-requests/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+  const createReport = (values: { title: string; report_type: string; description: string; recommendation: string }) => requestAndReload(`${API_URL}/manager/reports`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(values) });
+  const updateReport = (id: number, status: ManagerReportStatus) => requestAndReload(`${API_URL}/manager/reports/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+  const deleteReport = async (id: number) => { if (window.confirm("Delete this manager report?")) await requestAndReload(`${API_URL}/manager/reports/${id}`, { method: "DELETE" }); };
+  const dismissNotification = async (id: number) => { await requestAndReload(`${API_URL}/manager/notifications/${id}/dismiss`, { method: "PUT" }); };
   const advanceTask = async (id: number) => {
     const task = dashboardData.tasks.find((entry) => entry.id === id);
     if (!task) return;
     const status = task.status === "queued" ? "in_progress" : task.status === "in_progress" ? "done" : "queued";
-    await requestAndReload(`http://localhost:8000/manager/tasks/${id}/status`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+    await requestAndReload(`${API_URL}/manager/tasks/${id}/status`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
   };
   const selectModule = (id: string) => { setActiveModuleId(id); setSearchValue(""); setWorkspaceMode(null); };
 
@@ -4692,7 +4693,7 @@ function AuditorDashboard({
     setIsDashboardLoading(true);
     setDashboardError("");
     try {
-      const response = await fetch("http://localhost:8000/auditor/dashboard");
+      const response = await fetch(`${API_URL}/auditor/dashboard`);
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || "Could not load Auditor data.");
       setDashboardData(data);
@@ -4715,7 +4716,7 @@ function AuditorDashboard({
       setChatDirectoryError("");
 
       try {
-        const response = await fetch("http://localhost:8000/users/chat-directory");
+        const response = await fetch(`${API_URL}/users/chat-directory`);
         const data = await response.json();
 
         if (!response.ok) {
@@ -4749,7 +4750,7 @@ function AuditorDashboard({
 
   const dismissNotification = async (notificationId: number) => {
     try {
-      const response = await fetch(`http://localhost:8000/auditor/notifications/${notificationId}/dismiss`, {
+      const response = await fetch(`${API_URL}/auditor/notifications/${notificationId}/dismiss`, {
         method: "PUT",
       });
       const data = await response.json();
@@ -4777,7 +4778,7 @@ function AuditorDashboard({
     const status = task.status === "queued" ? "in_progress" : task.status === "in_progress" ? "done" : "queued";
 
     try {
-      const response = await fetch(`http://localhost:8000/auditor/tasks/${taskId}`, {
+      const response = await fetch(`${API_URL}/auditor/tasks/${taskId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
@@ -4798,19 +4799,19 @@ function AuditorDashboard({
   };
 
   const addReport = async (values: { title: string; report_type: AuditorReportType; description: string; recommendation: string }) => {
-    const response = await fetch("http://localhost:8000/auditor/reports", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(values) });
+    const response = await fetch(`${API_URL}/auditor/reports`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(values) });
     const data = await response.json();
     if (!response.ok) throw new Error(data.detail || "Could not create report.");
     await loadDashboard();
   };
   const updateReportStatus = async (reportId: number, status: AuditorReportStatus) => {
-    const response = await fetch(`http://localhost:8000/auditor/reports/${reportId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+    const response = await fetch(`${API_URL}/auditor/reports/${reportId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
     if (!response.ok) throw new Error("Could not update report.");
     await loadDashboard();
   };
   const deleteReport = async (reportId: number) => {
     if (!window.confirm("Delete this auditor report?")) return;
-    const response = await fetch(`http://localhost:8000/auditor/reports/${reportId}`, { method: "DELETE" });
+    const response = await fetch(`${API_URL}/auditor/reports/${reportId}`, { method: "DELETE" });
     if (!response.ok) throw new Error("Could not delete report.");
     await loadDashboard();
   };

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { API_URL } from "./api";
 import "./Login.css";
 
 type Role = "ADMIN" | "MANAGER" | "SECURITY_ENGINEER" | "ANALYST" | "AUDITOR";
@@ -37,7 +38,7 @@ export default function Login() {
     setErrorMessage("");
 
     try {
-      const response = await fetch("http://localhost:8000/auth/login", {
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { API_URL } from "./api";
 import "./Login.css";
 
 type Role = "ADMIN" | "MANAGER" | "SECURITY_ENGINEER" | "ANALYST" | "AUDITOR";
@@ -57,7 +58,7 @@ export default function AdminCreateUser() {
     setSuccessMessage("");
 
     try {
-      const response = await fetch("http://localhost:8000/auth/login", {
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -102,7 +103,7 @@ export default function AdminCreateUser() {
     }
 
     try {
-      const response = await fetch("http://localhost:8000/users/admin-create", {
+      const response = await fetch(`${API_URL}/users/admin-create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
