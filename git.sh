@@ -40,6 +40,7 @@ git add -- \
   git.sh \
   project/backend \
   project/frontend \
+  project/ml \
   project/docker-compose.yml \
   project/start.sh \
   project/stop.sh
